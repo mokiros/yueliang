@@ -33,8 +33,8 @@
 --
 -- Added:
 -- (both of the following are vaguely adapted from lauxlib.c)
--- * luaZ:make_getS: create Reader from a string
--- * luaZ:make_getF: create Reader that reads from a file
+-- * luaZ.make_getS: create Reader from a string
+-- * luaZ.make_getF: create Reader that reads from a file
 --
 -- Changed in 5.1.x:
 -- * Chunkreader renamed to Reader (ditto with Chunkwriter)
@@ -58,7 +58,7 @@ local luaZ = {}
 ------------------------------------------------------------------------
 -- create a chunk reader from a source string
 ------------------------------------------------------------------------
-function luaZ:make_getS(buff)
+function luaZ.make_getS(buff)
 	local b = buff
 	return function() -- chunk reader anonymous function here
 		if not b then
@@ -73,7 +73,7 @@ end
 ------------------------------------------------------------------------
 -- create a chunk reader from a source file
 ------------------------------------------------------------------------
-function luaZ:make_getF(source)
+function luaZ.make_getF(source)
 	local LUAL_BUFFERSIZE = 512
 	local pos = 1
 
@@ -88,7 +88,7 @@ end
 -- creates a zio input stream
 -- returns the ZIO structure, z
 ------------------------------------------------------------------------
-function luaZ:init(reader, data)
+function luaZ.init(reader, data)
 	if not reader then
 		return
 	end
@@ -109,7 +109,7 @@ end
 ------------------------------------------------------------------------
 -- fill up input buffer
 ------------------------------------------------------------------------
-function luaZ:fill(z)
+function luaZ.fill(z)
 	local buff = z.reader()
 	z.data = buff
 	if not buff or buff == "" then
@@ -123,13 +123,13 @@ end
 -- get next character from the input stream
 -- * local n, p are used to optimize code generation
 ------------------------------------------------------------------------
-function luaZ:zgetc(z)
+function luaZ.zgetc(z)
 	local n, p = z.n, z.p + 1
 	if n > 0 then
 		z.n, z.p = n - 1, p
 		return string.sub(z.data, p, p)
 	else
-		return self:fill(z)
+		return luaZ.fill(z)
 	end
 end
 

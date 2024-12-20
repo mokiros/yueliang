@@ -17,16 +17,16 @@
 -- * an Instruction is a table with OP, A, B, C, Bx elements; this
 --   makes the code easy to follow and should allow instruction handling
 --   to work with doubles and ints
--- * WARNING luaP:Instruction outputs instructions encoded in little-
+-- * WARNING luaP.Instruction outputs instructions encoded in little-
 --   endian form and field size and positions are hard-coded
 --
 -- Not implemented:
 -- *
 --
 -- Added:
--- * luaP:CREATE_Inst(c): create an inst from a number (for OP_SETLIST)
--- * luaP:Instruction(i): convert field elements to a 4-char string
--- * luaP:DecodeInst(x): convert 4-char string into field elements
+-- * luaP.CREATE_Inst(c): create an inst from a number (for OP_SETLIST)
+-- * luaP.Instruction(i): convert field elements to a 4-char string
+-- * luaP.DecodeInst(x): convert 4-char string into field elements
 --
 -- Changed in 5.1.x:
 -- * POS_OP added, instruction field positions changed
@@ -124,71 +124,71 @@ luaP.MAXARG_C = math.ldexp(1, luaP.SIZE_C) - 1
 ------------------------------------------------------------------------
 
 -- these accept or return opcodes in the form of string names
-function luaP:GET_OPCODE(i)
-	return self.ROpCode[i.OP]
+function luaP.GET_OPCODE(i)
+	return luaP.ROpCode[i.OP]
 end
-function luaP:SET_OPCODE(i, o)
-	i.OP = self.OpCode[o]
+function luaP.SET_OPCODE(i, o)
+	i.OP = luaP.OpCode[o]
 end
 
-function luaP:GETARG_A(i)
+function luaP.GETARG_A(i)
 	return i.A
 end
-function luaP:SETARG_A(i, u)
+function luaP.SETARG_A(i, u)
 	i.A = u
 end
 
-function luaP:GETARG_B(i)
+function luaP.GETARG_B(i)
 	return i.B
 end
-function luaP:SETARG_B(i, b)
+function luaP.SETARG_B(i, b)
 	i.B = b
 end
 
-function luaP:GETARG_C(i)
+function luaP.GETARG_C(i)
 	return i.C
 end
-function luaP:SETARG_C(i, b)
+function luaP.SETARG_C(i, b)
 	i.C = b
 end
 
-function luaP:GETARG_Bx(i)
+function luaP.GETARG_Bx(i)
 	return i.Bx
 end
-function luaP:SETARG_Bx(i, b)
+function luaP.SETARG_Bx(i, b)
 	i.Bx = b
 end
 
-function luaP:GETARG_sBx(i)
-	return i.Bx - self.MAXARG_sBx
+function luaP.GETARG_sBx(i)
+	return i.Bx - luaP.MAXARG_sBx
 end
-function luaP:SETARG_sBx(i, b)
-	i.Bx = b + self.MAXARG_sBx
-end
-
-function luaP:CREATE_ABC(o, a, b, c)
-	return { OP = self.OpCode[o], A = a, B = b, C = c }
+function luaP.SETARG_sBx(i, b)
+	i.Bx = b + luaP.MAXARG_sBx
 end
 
-function luaP:CREATE_ABx(o, a, bc)
-	return { OP = self.OpCode[o], A = a, Bx = bc }
+function luaP.CREATE_ABC(o, a, b, c)
+	return { OP = luaP.OpCode[o], A = a, B = b, C = c }
+end
+
+function luaP.CREATE_ABx(o, a, bc)
+	return { OP = luaP.OpCode[o], A = a, Bx = bc }
 end
 
 ------------------------------------------------------------------------
 -- create an instruction from a number (for OP_SETLIST)
 ------------------------------------------------------------------------
-function luaP:CREATE_Inst(c)
+function luaP.CREATE_Inst(c)
 	local o = c % 64
 	c = (c - o) / 64
 	local a = c % 256
 	c = (c - a) / 256
-	return self:CREATE_ABx(o, a, c)
+	return luaP.CREATE_ABx(o, a, c)
 end
 
 ------------------------------------------------------------------------
 -- returns a 4-char string little-endian encoded form of an instruction
 ------------------------------------------------------------------------
-function luaP:Instruction(i)
+function luaP.Instruction(i)
 	if i.Bx then
 		-- change to OP/A/B/C format
 		i.C = i.Bx % 512
@@ -207,7 +207,7 @@ end
 ------------------------------------------------------------------------
 -- decodes a 4-char little-endian string into an instruction struct
 ------------------------------------------------------------------------
-function luaP:DecodeInst(x)
+function luaP.DecodeInst(x)
 	local byte = string.byte
 	local i = {}
 	local I = byte(x, 1)
@@ -220,7 +220,7 @@ function luaP:DecodeInst(x)
 	local c = I % 512
 	i.C = c
 	i.B = byte(x, 4) * 2 + (I - c) / 512 -- 1 bits of c2 left
-	local opmode = self.OpMode[tonumber(string.sub(self.opmodes[op + 1], 7, 7))]
+	local opmode = luaP.OpMode[tonumber(string.sub(luaP.opmodes[op + 1], 7, 7))]
 	if opmode ~= "iABC" then
 		i.Bx = i.B * 512 + i.C
 	end
@@ -236,20 +236,20 @@ end
 luaP.BITRK = math.ldexp(1, luaP.SIZE_B - 1)
 
 -- test whether value is a constant
-function luaP:ISK(x)
-	return x >= self.BITRK
+function luaP.ISK(x)
+	return x >= luaP.BITRK
 end
 
 -- gets the index of the constant
-function luaP:INDEXK(r)
-	return x - self.BITRK
+function luaP.INDEXK(r)
+	return x - luaP.BITRK
 end
 
 luaP.MAXINDEXRK = luaP.BITRK - 1
 
 -- code a constant index as a RK value
-function luaP:RKASK(x)
-	return x + self.BITRK
+function luaP.RKASK(x)
+	return x + luaP.BITRK
 end
 
 ------------------------------------------------------------------------
@@ -381,28 +381,28 @@ luaP.NUM_OPCODES = i
 luaP.OpArgMask = { OpArgN = 0, OpArgU = 1, OpArgR = 2, OpArgK = 3 }
 
 ------------------------------------------------------------------------
--- e.g. to compare with symbols, luaP:getOpMode(...) == luaP.OpCode.iABC
+-- e.g. to compare with symbols, luaP.getOpMode(...) == luaP.OpCode.iABC
 -- * accepts opcode parameter as strings, e.g. "OP_MOVE"
 ------------------------------------------------------------------------
 
-function luaP:getOpMode(m)
-	return self.opmodes[self.OpCode[m]] % 4
+function luaP.getOpMode(m)
+	return luaP.opmodes[luaP.OpCode[m]] % 4
 end
 
-function luaP:getBMode(m)
-	return math.floor(self.opmodes[self.OpCode[m]] / 16) % 4
+function luaP.getBMode(m)
+	return math.floor(luaP.opmodes[luaP.OpCode[m]] / 16) % 4
 end
 
-function luaP:getCMode(m)
-	return math.floor(self.opmodes[self.OpCode[m]] / 4) % 4
+function luaP.getCMode(m)
+	return math.floor(luaP.opmodes[luaP.OpCode[m]] / 4) % 4
 end
 
-function luaP:testAMode(m)
-	return math.floor(self.opmodes[self.OpCode[m]] / 64) % 2
+function luaP.testAMode(m)
+	return math.floor(luaP.opmodes[luaP.OpCode[m]] / 64) % 2
 end
 
-function luaP:testTMode(m)
-	return math.floor(self.opmodes[self.OpCode[m]] / 128)
+function luaP.testTMode(m)
+	return math.floor(luaP.opmodes[luaP.OpCode[m]] / 128)
 end
 
 -- luaP_opnames[] is set above, as the luaP.opnames table

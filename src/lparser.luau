@@ -20,16 +20,16 @@
 --
 -- Not implemented:
 -- * luaX_newstring not needed by this Lua implementation
--- * luaG_checkcode() in lua_assert is not currently implemented
+-- * luaG_checkcode() in assert is not currently implemented
 --
 -- Added:
 -- * some constants added from various header files
 -- * luaY.LUA_QS used in error_expected, check_match (from luaconf.h)
--- * luaY:LUA_QL needed for error messages (from luaconf.h)
--- * luaY:growvector (from lmem.h) -- skeleton only, limit checking
+-- * luaY.LUA_QL needed for error messages (from luaconf.h)
+-- * luaY.growvector (from lmem.h) -- skeleton only, limit checking
 -- * luaY.SHRT_MAX (from <limits.h>) for registerlocalvar
--- * luaY:newproto (from lfunc.c)
--- * luaY:int2fb (from lobject.c)
+-- * luaY.newproto (from lfunc.c)
+-- * luaY.int2fb (from lobject.c)
 -- * NOTE: HASARG_MASK, for implementing a VARARG_HASARG bit operation
 -- * NOTE: value-specific code for VARARG_NEEDSARG to replace a bitop
 --
@@ -43,8 +43,8 @@
 -- * function checklimit moved to parser from lexer
 -- * functions anchor_token, errorlimit, checknext are new
 -- * checknext is new, equivalent to 5.0.x's check, see check too
--- * luaY:next and luaY:lookahead moved to lexer
--- * break keyword no longer skipped in luaY:breakstat
+-- * luaY.next and luaY.lookahead moved to lexer
+-- * break keyword no longer skipped in luaY.breakstat
 -- * function new_localvarstr replaced by new_localvarliteral
 -- * registerlocalvar limits local variables to SHRT_MAX
 -- * create_local deleted, new_localvarliteral used instead
@@ -52,10 +52,10 @@
 -- * constants MAXPARAMS, LUA_MAXPARSERLEVEL, MAXSTACK removed
 -- * function interface changed: singlevaraux, singlevar
 -- * enterlevel and leavelevel uses nCcalls to track call depth
--- * added a name argument to main entry function, luaY:parser
+-- * added a name argument to main entry function, luaY.parser
 -- * function luaY_index changed to yindex
--- * luaY:int2fb()'s table size encoding format has been changed
--- * luaY:log2() no longer needed for table constructors
+-- * luaY.int2fb()'s table size encoding format has been changed
+-- * luaY.log2() no longer needed for table constructors
 -- * function code_params deleted, functionality folded in parlist
 -- * vararg flags handling (is_vararg) changes; also see VARARG_*
 -- * LUA_COMPATUPSYNTAX section for old-style upvalues removed
@@ -78,7 +78,7 @@ local luaY = {}
 
 --[[--------------------------------------------------------------------
 -- Expression descriptor
--- * expkind changed to string constants; luaY:assignment was the only
+-- * expkind changed to string constants; luaY.assignment was the only
 --   function to use a relational operator with this enumeration
 -- VVOID       -- no value
 -- VNIL        -- no value
@@ -165,7 +165,7 @@ luaY.LUA_MULTRET = -1 -- (lua.h)
 -- LUA_QL describes how error messages quote program elements.
 -- CHANGE it if you want a different appearance. (from luaconf.h)
 ------------------------------------------------------------------------
-function luaY:LUA_QL(x)
+function luaY.LUA_QL(x)
 	return "'" .. x .. "'"
 end
 
@@ -177,9 +177,9 @@ end
 -- convenience, even those which are unused
 -- * set the t field to nil, since this originally does a sizeof(t)
 -- * size (originally a pointer) is never updated, their final values
---   are set by luaY:close_func(), so overall things should still work
+--   are set by luaY.close_func(), so overall things should still work
 ------------------------------------------------------------------------
-function luaY:growvector(L, v, nelems, size, t, limit, e)
+function luaY.growvector(L, v, nelems, size, t, limit, e)
 	if nelems >= limit then
 		error(e) -- was luaG_runerror
 	end
@@ -189,7 +189,7 @@ end
 -- initialize a new function prototype structure (from lfunc.c)
 -- * used only in open_func()
 ------------------------------------------------------------------------
-function luaY:newproto(L)
+function luaY.newproto(L)
 	local f = {} -- Proto
 	-- luaC_link(L, obj2gco(f), LUA_TPROTO); /* GC */
 	f.k = {}
@@ -219,7 +219,7 @@ end
 -- (eeeeexxx), where the real value is (1xxx) * 2^(eeeee - 1) if
 -- eeeee != 0 and (xxx) otherwise.
 ------------------------------------------------------------------------
-function luaY:int2fb(x)
+function luaY.int2fb(x)
 	local e = 0 -- exponent
 	while x >= 16 do
 		x = math.floor((x + 1) / 2)
@@ -239,23 +239,23 @@ end
 ------------------------------------------------------------------------
 -- true of the kind of expression produces multiple return values
 ------------------------------------------------------------------------
-function luaY:hasmultret(k)
+function luaY.hasmultret(k)
 	return k == "VCALL" or k == "VVARARG"
 end
 
 ------------------------------------------------------------------------
 -- convenience function to access active local i, returns entry
 ------------------------------------------------------------------------
-function luaY:getlocvar(fs, i)
+function luaY.getlocvar(fs, i)
 	return fs.f.locvars[fs.actvar[i]]
 end
 
 ------------------------------------------------------------------------
 -- check a limit, string m provided as an error message
 ------------------------------------------------------------------------
-function luaY:checklimit(fs, v, l, m)
+function luaY.checklimit(fs, v, l, m)
 	if v > l then
-		self:errorlimit(fs, l, m)
+		luaY.errorlimit(fs, l, m)
 	end
 end
 
@@ -278,7 +278,7 @@ end
 -- reanchor if last token is has a constant string, see close_func()
 -- * used only in close_func()
 ------------------------------------------------------------------------
-function luaY:anchor_token(ls)
+function luaY.anchor_token(ls)
 	if ls.t.token == "TK_NAME" or ls.t.token == "TK_STRING" then
 		-- not relevant to Lua implementation of parser
 		-- local ts = ls.t.seminfo
@@ -289,27 +289,27 @@ end
 ------------------------------------------------------------------------
 -- throws a syntax error if token expected is not there
 ------------------------------------------------------------------------
-function luaY:error_expected(ls, token)
-	luaX:syntaxerror(ls, string.format(self.LUA_QS .. " expected", luaX:token2str(ls, token)))
+function luaY.error_expected(ls, token)
+	luaX.syntaxerror(ls, string.format(luaY.LUA_QS .. " expected", luaX.token2str(ls, token)))
 end
 
 ------------------------------------------------------------------------
 -- prepares error message for display, for limits exceeded
 -- * used only in checklimit()
 ------------------------------------------------------------------------
-function luaY:errorlimit(fs, limit, what)
+function luaY.errorlimit(fs, limit, what)
 	local msg = (fs.f.linedefined == 0) and string.format("main function has more than %d %s", limit, what)
 		or string.format("function at line %d has more than %d %s", fs.f.linedefined, limit, what)
-	luaX:lexerror(fs.ls, msg, 0)
+	luaX.lexerror(fs.ls, msg, 0)
 end
 
 ------------------------------------------------------------------------
 -- tests for a token, returns outcome
 -- * return value changed to boolean
 ------------------------------------------------------------------------
-function luaY:testnext(ls, c)
+function luaY.testnext(ls, c)
 	if ls.t.token == c then
-		luaX:next(ls)
+		luaX.next(ls)
 		return true
 	else
 		return false
@@ -319,43 +319,43 @@ end
 ------------------------------------------------------------------------
 -- check for existence of a token, throws error if not found
 ------------------------------------------------------------------------
-function luaY:check(ls, c)
+function luaY.check(ls, c)
 	if ls.t.token ~= c then
-		self:error_expected(ls, c)
+		luaY.error_expected(ls, c)
 	end
 end
 
 ------------------------------------------------------------------------
 -- verify existence of a token, then skip it
 ------------------------------------------------------------------------
-function luaY:checknext(ls, c)
-	self:check(ls, c)
-	luaX:next(ls)
+function luaY.checknext(ls, c)
+	luaY.check(ls, c)
+	luaX.next(ls)
 end
 
 ------------------------------------------------------------------------
 -- throws error if condition not matched
 ------------------------------------------------------------------------
-function luaY:check_condition(ls, c, msg)
+function luaY.check_condition(ls, c, msg)
 	if not c then
-		luaX:syntaxerror(ls, msg)
+		luaX.syntaxerror(ls, msg)
 	end
 end
 
 ------------------------------------------------------------------------
 -- verifies token conditions are met or else throw error
 ------------------------------------------------------------------------
-function luaY:check_match(ls, what, who, where)
-	if not self:testnext(ls, what) then
+function luaY.check_match(ls, what, who, where)
+	if not luaY.testnext(ls, what) then
 		if where == ls.linenumber then
-			self:error_expected(ls, what)
+			luaY.error_expected(ls, what)
 		else
-			luaX:syntaxerror(
+			luaX.syntaxerror(
 				ls,
 				string.format(
-					self.LUA_QS .. " expected (to close " .. self.LUA_QS .. " at line %d)",
-					luaX:token2str(ls, what),
-					luaX:token2str(ls, who),
+					luaY.LUA_QS .. " expected (to close " .. luaY.LUA_QS .. " at line %d)",
+					luaX.token2str(ls, what),
+					luaX.token2str(ls, who),
 					where
 				)
 			)
@@ -366,17 +366,17 @@ end
 ------------------------------------------------------------------------
 -- expect that token is a name, return the name
 ------------------------------------------------------------------------
-function luaY:str_checkname(ls)
-	self:check(ls, "TK_NAME")
+function luaY.str_checkname(ls)
+	luaY.check(ls, "TK_NAME")
 	local ts = ls.t.seminfo
-	luaX:next(ls)
+	luaX.next(ls)
 	return ts
 end
 
 ------------------------------------------------------------------------
 -- initialize a struct expdesc, expression description data structure
 ------------------------------------------------------------------------
-function luaY:init_exp(e, k, i)
+function luaY.init_exp(e, k, i)
 	e.f, e.t = luaK.NO_JUMP, luaK.NO_JUMP
 	e.k = k
 	e.info = i
@@ -385,25 +385,25 @@ end
 ------------------------------------------------------------------------
 -- adds given string s in string pool, sets e as VK
 ------------------------------------------------------------------------
-function luaY:codestring(ls, e, s)
-	self:init_exp(e, "VK", luaK:stringK(ls.fs, s))
+function luaY.codestring(ls, e, s)
+	luaY.init_exp(e, "VK", luaK.stringK(ls.fs, s))
 end
 
 ------------------------------------------------------------------------
 -- consume a name token, adds it to string pool, sets e as VK
 ------------------------------------------------------------------------
-function luaY:checkname(ls, e)
-	self:codestring(ls, e, self:str_checkname(ls))
+function luaY.checkname(ls, e)
+	luaY.codestring(ls, e, luaY.str_checkname(ls))
 end
 
 ------------------------------------------------------------------------
 -- creates struct entry for a local variable
 -- * used only in new_localvar()
 ------------------------------------------------------------------------
-function luaY:registerlocalvar(ls, varname)
+function luaY.registerlocalvar(ls, varname)
 	local fs = ls.fs
 	local f = fs.f
-	self:growvector(ls.L, f.locvars, fs.nlocvars, f.sizelocvars, nil, self.SHRT_MAX, "too many local variables")
+	luaY.growvector(ls.L, f.locvars, fs.nlocvars, f.sizelocvars, nil, luaY.SHRT_MAX, "too many local variables")
 	-- loop to initialize empty f.locvar positions not required
 	f.locvars[fs.nlocvars] = {} -- LocVar
 	f.locvars[fs.nlocvars].varname = varname
@@ -417,38 +417,38 @@ end
 -- creates a new local variable given a name and an offset from nactvar
 -- * used in fornum(), forlist(), parlist(), body()
 ------------------------------------------------------------------------
-function luaY:new_localvarliteral(ls, v, n)
-	self:new_localvar(ls, v, n)
+function luaY.new_localvarliteral(ls, v, n)
+	luaY.new_localvar(ls, v, n)
 end
 
 ------------------------------------------------------------------------
 -- register a local variable, set in active variable list
 ------------------------------------------------------------------------
-function luaY:new_localvar(ls, name, n)
+function luaY.new_localvar(ls, name, n)
 	local fs = ls.fs
-	self:checklimit(fs, fs.nactvar + n + 1, self.LUAI_MAXVARS, "local variables")
-	fs.actvar[fs.nactvar + n] = self:registerlocalvar(ls, name)
+	luaY.checklimit(fs, fs.nactvar + n + 1, luaY.LUAI_MAXVARS, "local variables")
+	fs.actvar[fs.nactvar + n] = luaY.registerlocalvar(ls, name)
 end
 
 ------------------------------------------------------------------------
 -- adds nvars number of new local variables, set debug information
 ------------------------------------------------------------------------
-function luaY:adjustlocalvars(ls, nvars)
+function luaY.adjustlocalvars(ls, nvars)
 	local fs = ls.fs
 	fs.nactvar = fs.nactvar + nvars
 	for i = nvars, 1, -1 do
-		self:getlocvar(fs, fs.nactvar - i).startpc = fs.pc
+		luaY.getlocvar(fs, fs.nactvar - i).startpc = fs.pc
 	end
 end
 
 ------------------------------------------------------------------------
 -- removes a number of locals, set debug information
 ------------------------------------------------------------------------
-function luaY:removevars(ls, tolevel)
+function luaY.removevars(ls, tolevel)
 	local fs = ls.fs
 	while fs.nactvar > tolevel do
 		fs.nactvar = fs.nactvar - 1
-		self:getlocvar(fs, fs.nactvar).endpc = fs.pc
+		luaY.getlocvar(fs, fs.nactvar).endpc = fs.pc
 	end
 end
 
@@ -457,21 +457,21 @@ end
 -- creates a new upvalue struct entry and returns the new index
 -- * used only in singlevaraux()
 ------------------------------------------------------------------------
-function luaY:indexupvalue(fs, name, v)
+function luaY.indexupvalue(fs, name, v)
 	local f = fs.f
 	for i = 0, f.nups - 1 do
 		if fs.upvalues[i].k == v.k and fs.upvalues[i].info == v.info then
-			lua_assert(f.upvalues[i] == name)
+			assert(f.upvalues[i] == name)
 			return i
 		end
 	end
 	-- new one
-	self:checklimit(fs, f.nups + 1, self.LUAI_MAXUPVALUES, "upvalues")
-	self:growvector(fs.L, f.upvalues, f.nups, f.sizeupvalues, nil, self.MAX_INT, "")
+	luaY.checklimit(fs, f.nups + 1, luaY.LUAI_MAXUPVALUES, "upvalues")
+	luaY.growvector(fs.L, f.upvalues, f.nups, f.sizeupvalues, nil, luaY.MAX_INT, "")
 	-- loop to initialize empty f.upvalues positions not required
 	f.upvalues[f.nups] = name
 	-- luaC_objbarrier(fs->L, f, name); /* GC */
-	lua_assert(v.k == "VLOCAL" or v.k == "VUPVAL")
+	assert(v.k == "VLOCAL" or v.k == "VUPVAL")
 	-- this is a partial copy; only k & info fields used
 	fs.upvalues[f.nups] = { k = v.k, info = v.info }
 	local nups = f.nups
@@ -483,9 +483,9 @@ end
 -- search the local variable namespace of the given fs for a match
 -- * used only in singlevaraux()
 ------------------------------------------------------------------------
-function luaY:searchvar(fs, n)
+function luaY.searchvar(fs, n)
 	for i = fs.nactvar - 1, 0, -1 do
-		if n == self:getlocvar(fs, i).varname then
+		if n == luaY.getlocvar(fs, i).varname then
 			return i
 		end
 	end
@@ -496,7 +496,7 @@ end
 -- * mark upvalue flags in function states up to a given level
 -- * used only in singlevaraux()
 ------------------------------------------------------------------------
-function luaY:markupval(fs, level)
+function luaY.markupval(fs, level)
 	local bl = fs.bl
 	while bl and bl.nactvar > level do
 		bl = bl.previous
@@ -511,23 +511,23 @@ end
 -- * search mechanism is recursive, calls itself to search parents
 -- * used only in singlevar()
 ------------------------------------------------------------------------
-function luaY:singlevaraux(fs, n, var, base)
+function luaY.singlevaraux(fs, n, var, base)
 	if fs == nil then -- no more levels?
-		self:init_exp(var, "VGLOBAL", luaP.NO_REG) -- default is global variable
+		luaY.init_exp(var, "VGLOBAL", luaP.NO_REG) -- default is global variable
 		return "VGLOBAL"
 	else
-		local v = self:searchvar(fs, n) -- look up at current level
+		local v = luaY.searchvar(fs, n) -- look up at current level
 		if v >= 0 then
-			self:init_exp(var, "VLOCAL", v)
+			luaY.init_exp(var, "VLOCAL", v)
 			if base == 0 then
-				self:markupval(fs, v) -- local will be used as an upval
+				luaY.markupval(fs, v) -- local will be used as an upval
 			end
 			return "VLOCAL"
 		else -- not found at current level; try upper one
-			if self:singlevaraux(fs.prev, n, var, 0) == "VGLOBAL" then
+			if luaY.singlevaraux(fs.prev, n, var, 0) == "VGLOBAL" then
 				return "VGLOBAL"
 			end
-			var.info = self:indexupvalue(fs, n, var) -- else was LOCAL or UPVAL
+			var.info = luaY.indexupvalue(fs, n, var) -- else was LOCAL or UPVAL
 			var.k = "VUPVAL" -- upvalue in this level
 			return "VUPVAL"
 		end --if v
@@ -538,11 +538,11 @@ end
 -- consume a name token, creates a variable (global|local|upvalue)
 -- * used in prefixexp(), funcname()
 ------------------------------------------------------------------------
-function luaY:singlevar(ls, var)
-	local varname = self:str_checkname(ls)
+function luaY.singlevar(ls, var)
+	local varname = luaY.str_checkname(ls)
 	local fs = ls.fs
-	if self:singlevaraux(fs, varname, var, 1) == "VGLOBAL" then
-		var.info = luaK:stringK(fs, varname) -- info points to global name
+	if luaY.singlevaraux(fs, varname, var, 1) == "VGLOBAL" then
+		var.info = luaK.stringK(fs, varname) -- info points to global name
 	end
 end
 
@@ -550,26 +550,26 @@ end
 -- adjust RHS to match LHS in an assignment
 -- * used in assignment(), forlist(), localstat()
 ------------------------------------------------------------------------
-function luaY:adjust_assign(ls, nvars, nexps, e)
+function luaY.adjust_assign(ls, nvars, nexps, e)
 	local fs = ls.fs
 	local extra = nvars - nexps
-	if self:hasmultret(e.k) then
+	if luaY.hasmultret(e.k) then
 		extra = extra + 1 -- includes call itself
 		if extra <= 0 then
 			extra = 0
 		end
-		luaK:setreturns(fs, e, extra) -- last exp. provides the difference
+		luaK.setreturns(fs, e, extra) -- last exp. provides the difference
 		if extra > 1 then
-			luaK:reserveregs(fs, extra - 1)
+			luaK.reserveregs(fs, extra - 1)
 		end
 	else
 		if e.k ~= "VVOID" then
-			luaK:exp2nextreg(fs, e)
+			luaK.exp2nextreg(fs, e)
 		end -- close last expression
 		if extra > 0 then
 			local reg = fs.freereg
-			luaK:reserveregs(fs, extra)
-			luaK:_nil(fs, reg, extra)
+			luaK.reserveregs(fs, extra)
+			luaK._nil(fs, reg, extra)
 		end
 	end
 end
@@ -577,48 +577,48 @@ end
 ------------------------------------------------------------------------
 -- tracks and limits parsing depth, assert check at end of parsing
 ------------------------------------------------------------------------
-function luaY:enterlevel(ls)
+function luaY.enterlevel(ls)
 	ls.L.nCcalls = ls.L.nCcalls + 1
-	if ls.L.nCcalls > self.LUAI_MAXCCALLS then
-		luaX:lexerror(ls, "chunk has too many syntax levels", 0)
+	if ls.L.nCcalls > luaY.LUAI_MAXCCALLS then
+		luaX.lexerror(ls, "chunk has too many syntax levels", 0)
 	end
 end
 
 ------------------------------------------------------------------------
--- tracks parsing depth, a pair with luaY:enterlevel()
+-- tracks parsing depth, a pair with luaY.enterlevel()
 ------------------------------------------------------------------------
-function luaY:leavelevel(ls)
+function luaY.leavelevel(ls)
 	ls.L.nCcalls = ls.L.nCcalls - 1
 end
 
 ------------------------------------------------------------------------
 -- enters a code unit, initializes elements
 ------------------------------------------------------------------------
-function luaY:enterblock(fs, bl, isbreakable)
+function luaY.enterblock(fs, bl, isbreakable)
 	bl.breaklist = luaK.NO_JUMP
 	bl.isbreakable = isbreakable
 	bl.nactvar = fs.nactvar
 	bl.upval = false
 	bl.previous = fs.bl
 	fs.bl = bl
-	lua_assert(fs.freereg == fs.nactvar)
+	assert(fs.freereg == fs.nactvar)
 end
 
 ------------------------------------------------------------------------
 -- leaves a code unit, close any upvalues
 ------------------------------------------------------------------------
-function luaY:leaveblock(fs)
+function luaY.leaveblock(fs)
 	local bl = fs.bl
 	fs.bl = bl.previous
-	self:removevars(fs.ls, bl.nactvar)
+	luaY.removevars(fs.ls, bl.nactvar)
 	if bl.upval then
-		luaK:codeABC(fs, "OP_CLOSE", bl.nactvar, 0, 0)
+		luaK.codeABC(fs, "OP_CLOSE", bl.nactvar, 0, 0)
 	end
 	-- a block either controls scope or breaks (never both)
-	lua_assert(not bl.isbreakable or not bl.upval)
-	lua_assert(bl.nactvar == fs.nactvar)
+	assert(not bl.isbreakable or not bl.upval)
+	assert(bl.nactvar == fs.nactvar)
 	fs.freereg = fs.nactvar -- free registers
-	luaK:patchtohere(fs, bl.breaklist)
+	luaK.patchtohere(fs, bl.breaklist)
 end
 
 ------------------------------------------------------------------------
@@ -626,27 +626,27 @@ end
 -- upvalues after the instantiation instruction
 -- * used only in body()
 ------------------------------------------------------------------------
-function luaY:pushclosure(ls, func, v)
+function luaY.pushclosure(ls, func, v)
 	local fs = ls.fs
 	local f = fs.f
-	self:growvector(ls.L, f.p, fs.np, f.sizep, nil, luaP.MAXARG_Bx, "constant table overflow")
+	luaY.growvector(ls.L, f.p, fs.np, f.sizep, nil, luaP.MAXARG_Bx, "constant table overflow")
 	-- loop to initialize empty f.p positions not required
 	f.p[fs.np] = func.f
 	fs.np = fs.np + 1
 	-- luaC_objbarrier(ls->L, f, func->f); /* C */
-	self:init_exp(v, "VRELOCABLE", luaK:codeABx(fs, "OP_CLOSURE", 0, fs.np - 1))
+	luaY.init_exp(v, "VRELOCABLE", luaK.codeABx(fs, "OP_CLOSURE", 0, fs.np - 1))
 	for i = 0, func.f.nups - 1 do
 		local o = (func.upvalues[i].k == "VLOCAL") and "OP_MOVE" or "OP_GETUPVAL"
-		luaK:codeABC(fs, o, 0, func.upvalues[i].info, 0)
+		luaK.codeABC(fs, o, 0, func.upvalues[i].info, 0)
 	end
 end
 
 ------------------------------------------------------------------------
 -- opening of a function
 ------------------------------------------------------------------------
-function luaY:open_func(ls, fs)
+function luaY.open_func(ls, fs)
 	local L = ls.L
-	local f = self:newproto(ls.L)
+	local f = luaY.newproto(ls.L)
 	fs.f = f
 	fs.prev = ls.fs -- linked list of funcstates
 	fs.ls = ls
@@ -672,12 +672,12 @@ end
 ------------------------------------------------------------------------
 -- closing of a function
 ------------------------------------------------------------------------
-function luaY:close_func(ls)
+function luaY.close_func(ls)
 	local L = ls.L
 	local fs = ls.fs
 	local f = fs.f
-	self:removevars(ls, 0)
-	luaK:ret(fs, 0, 0) -- final return
+	luaY.removevars(ls, 0)
+	luaK.ret(fs, 0, 0) -- final return
 	-- luaM_reallocvector deleted for f->code, f->lineinfo, f->k, f->p,
 	-- f->locvars, f->upvalues; not required for Lua table arrays
 	f.sizecode = fs.pc
@@ -686,15 +686,15 @@ function luaY:close_func(ls)
 	f.sizep = fs.np
 	f.sizelocvars = fs.nlocvars
 	f.sizeupvalues = f.nups
-	--lua_assert(luaG_checkcode(f))  -- currently not implemented
-	lua_assert(fs.bl == nil)
+	--assert(luaG_checkcode(f))  -- currently not implemented
+	assert(fs.bl == nil)
 	ls.fs = fs.prev
 	-- the following is not required for this implementation; kept here
 	-- for completeness
 	-- L->top -= 2;  /* remove table and prototype from the stack */
 	-- last token read was anchored in defunct function; must reanchor it
 	if fs then
-		self:anchor_token(ls)
+		luaY.anchor_token(ls)
 	end
 end
 
@@ -702,7 +702,7 @@ end
 -- parser initialization function
 -- * note additional sub-tables needed for LexState, FuncState
 ------------------------------------------------------------------------
-function luaY:parser(L, z, buff, name)
+function luaY.parser(L, z, buff, name)
 	local lexstate = {} -- LexState
 	lexstate.t = {}
 	lexstate.lookahead = {}
@@ -712,16 +712,16 @@ function luaY:parser(L, z, buff, name)
 	-- the following nCcalls initialization added for convenience
 	L.nCcalls = 0
 	lexstate.buff = buff
-	luaX:setinput(L, lexstate, z, name)
-	self:open_func(lexstate, funcstate)
-	funcstate.f.is_vararg = self.VARARG_ISVARARG -- main func. is always vararg
-	luaX:next(lexstate) -- read first token
-	self:chunk(lexstate)
-	self:check(lexstate, "TK_EOS")
-	self:close_func(lexstate)
-	lua_assert(funcstate.prev == nil)
-	lua_assert(funcstate.f.nups == 0)
-	lua_assert(lexstate.fs == nil)
+	luaX.setinput(L, lexstate, z, name)
+	luaY.open_func(lexstate, funcstate)
+	funcstate.f.is_vararg = luaY.VARARG_ISVARARG -- main func. is always vararg
+	luaX.next(lexstate) -- read first token
+	luaY.chunk(lexstate)
+	luaY.check(lexstate, "TK_EOS")
+	luaY.close_func(lexstate)
+	assert(funcstate.prev == nil)
+	assert(funcstate.f.nups == 0)
+	assert(lexstate.fs == nil)
 	return funcstate.f
 end
 
@@ -733,26 +733,26 @@ end
 -- parse a function name suffix, for function call specifications
 -- * used in primaryexp(), funcname()
 ------------------------------------------------------------------------
-function luaY:field(ls, v)
+function luaY.field(ls, v)
 	-- field -> ['.' | ':'] NAME
 	local fs = ls.fs
 	local key = {} -- expdesc
-	luaK:exp2anyreg(fs, v)
-	luaX:next(ls) -- skip the dot or colon
-	self:checkname(ls, key)
-	luaK:indexed(fs, v, key)
+	luaK.exp2anyreg(fs, v)
+	luaX.next(ls) -- skip the dot or colon
+	luaY.checkname(ls, key)
+	luaK.indexed(fs, v, key)
 end
 
 ------------------------------------------------------------------------
 -- parse a table indexing suffix, for constructors, expressions
 -- * used in recfield(), primaryexp()
 ------------------------------------------------------------------------
-function luaY:yindex(ls, v)
+function luaY.yindex(ls, v)
 	-- index -> '[' expr ']'
-	luaX:next(ls) -- skip the '['
-	self:expr(ls, v)
-	luaK:exp2val(ls.fs, v)
-	self:checknext(ls, "]")
+	luaX.next(ls) -- skip the '['
+	luaY.expr(ls, v)
+	luaK.exp2val(ls.fs, v)
+	luaY.checknext(ls, "]")
 end
 
 --[[--------------------------------------------------------------------
@@ -772,22 +772,22 @@ end
 -- parse a table record (hash) field
 -- * used in constructor()
 ------------------------------------------------------------------------
-function luaY:recfield(ls, cc)
+function luaY.recfield(ls, cc)
 	-- recfield -> (NAME | '['exp1']') = exp1
 	local fs = ls.fs
 	local reg = ls.fs.freereg
 	local key, val = {}, {} -- expdesc
 	if ls.t.token == "TK_NAME" then
-		self:checklimit(fs, cc.nh, self.MAX_INT, "items in a constructor")
-		self:checkname(ls, key)
+		luaY.checklimit(fs, cc.nh, luaY.MAX_INT, "items in a constructor")
+		luaY.checkname(ls, key)
 	else -- ls->t.token == '['
-		self:yindex(ls, key)
+		luaY.yindex(ls, key)
 	end
 	cc.nh = cc.nh + 1
-	self:checknext(ls, "=")
-	local rkkey = luaK:exp2RK(fs, key)
-	self:expr(ls, val)
-	luaK:codeABC(fs, "OP_SETTABLE", cc.t.info, rkkey, luaK:exp2RK(fs, val))
+	luaY.checknext(ls, "=")
+	local rkkey = luaK.exp2RK(fs, key)
+	luaY.expr(ls, val)
+	luaK.codeABC(fs, "OP_SETTABLE", cc.t.info, rkkey, luaK.exp2RK(fs, val))
 	fs.freereg = reg -- free registers
 end
 
@@ -795,14 +795,14 @@ end
 -- emit a set list instruction if enough elements (LFIELDS_PER_FLUSH)
 -- * used in constructor()
 ------------------------------------------------------------------------
-function luaY:closelistfield(fs, cc)
+function luaY.closelistfield(fs, cc)
 	if cc.v.k == "VVOID" then
 		return
 	end -- there is no list item
-	luaK:exp2nextreg(fs, cc.v)
+	luaK.exp2nextreg(fs, cc.v)
 	cc.v.k = "VVOID"
 	if cc.tostore == luaP.LFIELDS_PER_FLUSH then
-		luaK:setlist(fs, cc.t.info, cc.na, cc.tostore) -- flush
+		luaK.setlist(fs, cc.t.info, cc.na, cc.tostore) -- flush
 		cc.tostore = 0 -- no more items pending
 	end
 end
@@ -811,19 +811,19 @@ end
 -- emit a set list instruction at the end of parsing list constructor
 -- * used in constructor()
 ------------------------------------------------------------------------
-function luaY:lastlistfield(fs, cc)
+function luaY.lastlistfield(fs, cc)
 	if cc.tostore == 0 then
 		return
 	end
-	if self:hasmultret(cc.v.k) then
-		luaK:setmultret(fs, cc.v)
-		luaK:setlist(fs, cc.t.info, cc.na, self.LUA_MULTRET)
+	if luaY.hasmultret(cc.v.k) then
+		luaK.setmultret(fs, cc.v)
+		luaK.setlist(fs, cc.t.info, cc.na, luaY.LUA_MULTRET)
 		cc.na = cc.na - 1 -- do not count last expression (unknown number of elements)
 	else
 		if cc.v.k ~= "VVOID" then
-			luaK:exp2nextreg(fs, cc.v)
+			luaK.exp2nextreg(fs, cc.v)
 		end
-		luaK:setlist(fs, cc.t.info, cc.na, cc.tostore)
+		luaK.setlist(fs, cc.t.info, cc.na, cc.tostore)
 	end
 end
 
@@ -831,9 +831,9 @@ end
 -- parse a table list (array) field
 -- * used in constructor()
 ------------------------------------------------------------------------
-function luaY:listfield(ls, cc)
-	self:expr(ls, cc.v)
-	self:checklimit(ls.fs, cc.na, self.MAX_INT, "items in a constructor")
+function luaY.listfield(ls, cc)
+	luaY.expr(ls, cc.v)
+	luaY.checklimit(ls.fs, cc.na, luaY.MAX_INT, "items in a constructor")
 	cc.na = cc.na + 1
 	cc.tostore = cc.tostore + 1
 end
@@ -842,46 +842,46 @@ end
 -- parse a table constructor
 -- * used in funcargs(), simpleexp()
 ------------------------------------------------------------------------
-function luaY:constructor(ls, t)
+function luaY.constructor(ls, t)
 	-- constructor -> '{' [ field { fieldsep field } [ fieldsep ] ] '}'
 	-- field -> recfield | listfield
 	-- fieldsep -> ',' | ';'
 	local fs = ls.fs
 	local line = ls.linenumber
-	local pc = luaK:codeABC(fs, "OP_NEWTABLE", 0, 0, 0)
+	local pc = luaK.codeABC(fs, "OP_NEWTABLE", 0, 0, 0)
 	local cc = {} -- ConsControl
 	cc.v = {}
 	cc.na, cc.nh, cc.tostore = 0, 0, 0
 	cc.t = t
-	self:init_exp(t, "VRELOCABLE", pc)
-	self:init_exp(cc.v, "VVOID", 0) -- no value (yet)
-	luaK:exp2nextreg(ls.fs, t) -- fix it at stack top (for gc)
-	self:checknext(ls, "{")
+	luaY.init_exp(t, "VRELOCABLE", pc)
+	luaY.init_exp(cc.v, "VVOID", 0) -- no value (yet)
+	luaK.exp2nextreg(ls.fs, t) -- fix it at stack top (for gc)
+	luaY.checknext(ls, "{")
 	repeat
-		lua_assert(cc.v.k == "VVOID" or cc.tostore > 0)
+		assert(cc.v.k == "VVOID" or cc.tostore > 0)
 		if ls.t.token == "}" then
 			break
 		end
-		self:closelistfield(fs, cc)
+		luaY.closelistfield(fs, cc)
 		local c = ls.t.token
 
 		if c == "TK_NAME" then -- may be listfields or recfields
-			luaX:lookahead(ls)
+			luaX.lookahead(ls)
 			if ls.lookahead.token ~= "=" then -- expression?
-				self:listfield(ls, cc)
+				luaY.listfield(ls, cc)
 			else
-				self:recfield(ls, cc)
+				luaY.recfield(ls, cc)
 			end
 		elseif c == "[" then -- constructor_item -> recfield
-			self:recfield(ls, cc)
+			luaY.recfield(ls, cc)
 		else -- constructor_part -> listfield
-			self:listfield(ls, cc)
+			luaY.listfield(ls, cc)
 		end
-	until not self:testnext(ls, ",") and not self:testnext(ls, ";")
-	self:check_match(ls, "}", "{", line)
-	self:lastlistfield(fs, cc)
-	luaP:SETARG_B(fs.f.code[pc], self:int2fb(cc.na)) -- set initial array size
-	luaP:SETARG_C(fs.f.code[pc], self:int2fb(cc.nh)) -- set initial table size
+	until not luaY.testnext(ls, ",") and not luaY.testnext(ls, ";")
+	luaY.check_match(ls, "}", "{", line)
+	luaY.lastlistfield(fs, cc)
+	luaP.SETARG_B(fs.f.code[pc], luaY.int2fb(cc.na)) -- set initial array size
+	luaP.SETARG_C(fs.f.code[pc], luaY.int2fb(cc.nh)) -- set initial table size
 end
 
 -- }======================================================================
@@ -890,7 +890,7 @@ end
 -- parse the arguments (parameters) of a function declaration
 -- * used in body()
 ------------------------------------------------------------------------
-function luaY:parlist(ls)
+function luaY.parlist(ls)
 	-- parlist -> [ param { ',' param } ]
 	local fs = ls.fs
 	local f = fs.f
@@ -900,66 +900,66 @@ function luaY:parlist(ls)
 		repeat
 			local c = ls.t.token
 			if c == "TK_NAME" then -- param -> NAME
-				self:new_localvar(ls, self:str_checkname(ls), nparams)
+				luaY.new_localvar(ls, luaY.str_checkname(ls), nparams)
 				nparams = nparams + 1
 			elseif c == "TK_DOTS" then -- param -> `...'
-				luaX:next(ls)
+				luaX.next(ls)
 				-- [[
 				-- #if defined(LUA_COMPAT_VARARG)
 				-- use `arg' as default name
-				self:new_localvarliteral(ls, "arg", nparams)
+				luaY.new_localvarliteral(ls, "arg", nparams)
 				nparams = nparams + 1
-				f.is_vararg = self.VARARG_HASARG + self.VARARG_NEEDSARG
+				f.is_vararg = luaY.VARARG_HASARG + luaY.VARARG_NEEDSARG
 				-- #endif
 				--]]
-				f.is_vararg = f.is_vararg + self.VARARG_ISVARARG
+				f.is_vararg = f.is_vararg + luaY.VARARG_ISVARARG
 			else
-				luaX:syntaxerror(ls, "<name> or " .. self:LUA_QL("...") .. " expected")
+				luaX.syntaxerror(ls, "<name> or " .. luaY.LUA_QL("...") .. " expected")
 			end
-		until f.is_vararg ~= 0 or not self:testnext(ls, ",")
+		until f.is_vararg ~= 0 or not luaY.testnext(ls, ",")
 	end --if
-	self:adjustlocalvars(ls, nparams)
+	luaY.adjustlocalvars(ls, nparams)
 	-- NOTE: the following works only when HASARG_MASK is 2!
-	f.numparams = fs.nactvar - (f.is_vararg % self.HASARG_MASK)
-	luaK:reserveregs(fs, fs.nactvar) -- reserve register for parameters
+	f.numparams = fs.nactvar - (f.is_vararg % luaY.HASARG_MASK)
+	luaK.reserveregs(fs, fs.nactvar) -- reserve register for parameters
 end
 
 ------------------------------------------------------------------------
 -- parse function declaration body
 -- * used in simpleexp(), localfunc(), funcstat()
 ------------------------------------------------------------------------
-function luaY:body(ls, e, needself, line)
+function luaY.body(ls, e, needself, line)
 	-- body ->  '(' parlist ')' chunk END
 	local new_fs = {} -- FuncState
 	new_fs.upvalues = {}
 	new_fs.actvar = {}
-	self:open_func(ls, new_fs)
+	luaY.open_func(ls, new_fs)
 	new_fs.f.lineDefined = line
-	self:checknext(ls, "(")
+	luaY.checknext(ls, "(")
 	if needself then
-		self:new_localvarliteral(ls, "self", 0)
-		self:adjustlocalvars(ls, 1)
+		luaY.new_localvarliteral(ls, "self", 0)
+		luaY.adjustlocalvars(ls, 1)
 	end
-	self:parlist(ls)
-	self:checknext(ls, ")")
-	self:chunk(ls)
+	luaY.parlist(ls)
+	luaY.checknext(ls, ")")
+	luaY.chunk(ls)
 	new_fs.f.lastlinedefined = ls.linenumber
-	self:check_match(ls, "TK_END", "TK_FUNCTION", line)
-	self:close_func(ls)
-	self:pushclosure(ls, new_fs, e)
+	luaY.check_match(ls, "TK_END", "TK_FUNCTION", line)
+	luaY.close_func(ls)
+	luaY.pushclosure(ls, new_fs, e)
 end
 
 ------------------------------------------------------------------------
 -- parse a list of comma-separated expressions
 -- * used is multiple locations
 ------------------------------------------------------------------------
-function luaY:explist1(ls, v)
+function luaY.explist1(ls, v)
 	-- explist1 -> expr { ',' expr }
 	local n = 1 -- at least one expression
-	self:expr(ls, v)
-	while self:testnext(ls, ",") do
-		luaK:exp2nextreg(ls.fs, v)
-		self:expr(ls, v)
+	luaY.expr(ls, v)
+	while luaY.testnext(ls, ",") do
+		luaK.exp2nextreg(ls.fs, v)
+		luaY.expr(ls, v)
 		n = n + 1
 	end
 	return n
@@ -970,7 +970,7 @@ end
 -- * contrast with parlist(), used in function declarations
 -- * used in primaryexp()
 ------------------------------------------------------------------------
-function luaY:funcargs(ls, f)
+function luaY.funcargs(ls, f)
 	local fs = ls.fs
 	local args = {} -- expdesc
 	local nparams
@@ -978,37 +978,37 @@ function luaY:funcargs(ls, f)
 	local c = ls.t.token
 	if c == "(" then -- funcargs -> '(' [ explist1 ] ')'
 		if line ~= ls.lastline then
-			luaX:syntaxerror(ls, "ambiguous syntax (function call x new statement)")
+			luaX.syntaxerror(ls, "ambiguous syntax (function call x new statement)")
 		end
-		luaX:next(ls)
+		luaX.next(ls)
 		if ls.t.token == ")" then -- arg list is empty?
 			args.k = "VVOID"
 		else
-			self:explist1(ls, args)
-			luaK:setmultret(fs, args)
+			luaY.explist1(ls, args)
+			luaK.setmultret(fs, args)
 		end
-		self:check_match(ls, ")", "(", line)
+		luaY.check_match(ls, ")", "(", line)
 	elseif c == "{" then -- funcargs -> constructor
-		self:constructor(ls, args)
+		luaY.constructor(ls, args)
 	elseif c == "TK_STRING" then -- funcargs -> STRING
-		self:codestring(ls, args, ls.t.seminfo)
-		luaX:next(ls) -- must use 'seminfo' before 'next'
+		luaY.codestring(ls, args, ls.t.seminfo)
+		luaX.next(ls) -- must use 'seminfo' before 'next'
 	else
-		luaX:syntaxerror(ls, "function arguments expected")
+		luaX.syntaxerror(ls, "function arguments expected")
 		return
 	end
-	lua_assert(f.k == "VNONRELOC")
+	assert(f.k == "VNONRELOC")
 	local base = f.info -- base register for call
-	if self:hasmultret(args.k) then
-		nparams = self.LUA_MULTRET -- open call
+	if luaY.hasmultret(args.k) then
+		nparams = luaY.LUA_MULTRET -- open call
 	else
 		if args.k ~= "VVOID" then
-			luaK:exp2nextreg(fs, args) -- close last argument
+			luaK.exp2nextreg(fs, args) -- close last argument
 		end
 		nparams = fs.freereg - (base + 1)
 	end
-	self:init_exp(f, "VCALL", luaK:codeABC(fs, "OP_CALL", base, nparams + 1, 2))
-	luaK:fixline(fs, line)
+	luaY.init_exp(f, "VCALL", luaK.codeABC(fs, "OP_CALL", base, nparams + 1, 2))
+	luaK.fixline(fs, line)
 	fs.freereg = base + 1 -- call remove function and arguments and leaves
 	-- (unless changed) one result
 end
@@ -1021,19 +1021,19 @@ end
 -- parses an expression in parentheses or a single variable
 -- * used in primaryexp()
 ------------------------------------------------------------------------
-function luaY:prefixexp(ls, v)
+function luaY.prefixexp(ls, v)
 	-- prefixexp -> NAME | '(' expr ')'
 	local c = ls.t.token
 	if c == "(" then
 		local line = ls.linenumber
-		luaX:next(ls)
-		self:expr(ls, v)
-		self:check_match(ls, ")", "(", line)
-		luaK:dischargevars(ls.fs, v)
+		luaX.next(ls)
+		luaY.expr(ls, v)
+		luaY.check_match(ls, ")", "(", line)
+		luaK.dischargevars(ls.fs, v)
 	elseif c == "TK_NAME" then
-		self:singlevar(ls, v)
+		luaY.singlevar(ls, v)
 	else
-		luaX:syntaxerror(ls, "unexpected symbol")
+		luaX.syntaxerror(ls, "unexpected symbol")
 	end --if c
 	return
 end
@@ -1043,29 +1043,29 @@ end
 -- or a function call specification
 -- * used in simpleexp(), assignment(), exprstat()
 ------------------------------------------------------------------------
-function luaY:primaryexp(ls, v)
+function luaY.primaryexp(ls, v)
 	-- primaryexp ->
 	--    prefixexp { '.' NAME | '[' exp ']' | ':' NAME funcargs | funcargs }
 	local fs = ls.fs
-	self:prefixexp(ls, v)
+	luaY.prefixexp(ls, v)
 	while true do
 		local c = ls.t.token
 		if c == "." then -- field
-			self:field(ls, v)
+			luaY.field(ls, v)
 		elseif c == "[" then -- '[' exp1 ']'
 			local key = {} -- expdesc
-			luaK:exp2anyreg(fs, v)
-			self:yindex(ls, key)
-			luaK:indexed(fs, v, key)
+			luaK.exp2anyreg(fs, v)
+			luaY.yindex(ls, key)
+			luaK.indexed(fs, v, key)
 		elseif c == ":" then -- ':' NAME funcargs
 			local key = {} -- expdesc
-			luaX:next(ls)
-			self:checkname(ls, key)
-			luaK:_self(fs, v, key)
-			self:funcargs(ls, v)
+			luaX.next(ls)
+			luaY.checkname(ls, key)
+			luaK._self(fs, v, key)
+			luaY.funcargs(ls, v)
 		elseif c == "(" or c == "TK_STRING" or c == "{" then -- funcargs
-			luaK:exp2nextreg(fs, v)
-			self:funcargs(ls, v)
+			luaK.exp2nextreg(fs, v)
+			luaY.funcargs(ls, v)
 		else
 			return
 		end --if c
@@ -1076,46 +1076,46 @@ end
 -- parses general expression types, constants handled here
 -- * used in subexpr()
 ------------------------------------------------------------------------
-function luaY:simpleexp(ls, v)
+function luaY.simpleexp(ls, v)
 	-- simpleexp -> NUMBER | STRING | NIL | TRUE | FALSE | ... |
 	--              constructor | FUNCTION body | primaryexp
 	local c = ls.t.token
 	if c == "TK_NUMBER" then
-		self:init_exp(v, "VKNUM", 0)
+		luaY.init_exp(v, "VKNUM", 0)
 		v.nval = ls.t.seminfo
 	elseif c == "TK_STRING" then
-		self:codestring(ls, v, ls.t.seminfo)
+		luaY.codestring(ls, v, ls.t.seminfo)
 	elseif c == "TK_NIL" then
-		self:init_exp(v, "VNIL", 0)
+		luaY.init_exp(v, "VNIL", 0)
 	elseif c == "TK_TRUE" then
-		self:init_exp(v, "VTRUE", 0)
+		luaY.init_exp(v, "VTRUE", 0)
 	elseif c == "TK_FALSE" then
-		self:init_exp(v, "VFALSE", 0)
+		luaY.init_exp(v, "VFALSE", 0)
 	elseif c == "TK_DOTS" then -- vararg
 		local fs = ls.fs
-		self:check_condition(
+		luaY.check_condition(
 			ls,
 			fs.f.is_vararg ~= 0,
-			"cannot use " .. self:LUA_QL("...") .. " outside a vararg function"
+			"cannot use " .. luaY.LUA_QL("...") .. " outside a vararg function"
 		)
 		-- NOTE: the following substitutes for a bitop, but is value-specific
 		local is_vararg = fs.f.is_vararg
-		if is_vararg >= self.VARARG_NEEDSARG then
-			fs.f.is_vararg = is_vararg - self.VARARG_NEEDSARG -- don't need 'arg'
+		if is_vararg >= luaY.VARARG_NEEDSARG then
+			fs.f.is_vararg = is_vararg - luaY.VARARG_NEEDSARG -- don't need 'arg'
 		end
-		self:init_exp(v, "VVARARG", luaK:codeABC(fs, "OP_VARARG", 0, 1, 0))
+		luaY.init_exp(v, "VVARARG", luaK.codeABC(fs, "OP_VARARG", 0, 1, 0))
 	elseif c == "{" then -- constructor
-		self:constructor(ls, v)
+		luaY.constructor(ls, v)
 		return
 	elseif c == "TK_FUNCTION" then
-		luaX:next(ls)
-		self:body(ls, v, false, ls.linenumber)
+		luaX.next(ls)
+		luaY.body(ls, v, false, ls.linenumber)
 		return
 	else
-		self:primaryexp(ls, v)
+		luaY.primaryexp(ls, v)
 		return
 	end --if c
-	luaX:next(ls)
+	luaX.next(ls)
 end
 
 ------------------------------------------------------------------------
@@ -1123,7 +1123,7 @@ end
 -- OPR_NOUNOPR. getunopr() and getbinopr() are used in subexpr().
 -- * used in subexpr()
 ------------------------------------------------------------------------
-function luaY:getunopr(op)
+function luaY.getunopr(op)
 	if op == "TK_NOT" then
 		return "OPR_NOT"
 	elseif op == "-" then
@@ -1157,8 +1157,8 @@ luaY.getbinopr_table = {
 	["TK_AND"] = "OPR_AND",
 	["TK_OR"] = "OPR_OR",
 }
-function luaY:getbinopr(op)
-	local opr = self.getbinopr_table[op]
+function luaY.getbinopr(op)
+	local opr = luaY.getbinopr_table[op]
 	if opr then
 		return opr
 	else
@@ -1206,32 +1206,32 @@ luaY.UNARY_PRIORITY = 8 -- priority for unary operators
 ------------------------------------------------------------------------
 -- subexpr -> (simpleexp | unop subexpr) { binop subexpr }
 -- where 'binop' is any binary operator with a priority higher than 'limit'
--- * for priority lookups with self.priority[], 1=left and 2=right
+-- * for priority lookups with luaY.priority[], 1=left and 2=right
 -- * recursively called
 -- * used in expr()
 ------------------------------------------------------------------------
-function luaY:subexpr(ls, v, limit)
-	self:enterlevel(ls)
-	local uop = self:getunopr(ls.t.token)
+function luaY.subexpr(ls, v, limit)
+	luaY.enterlevel(ls)
+	local uop = luaY.getunopr(ls.t.token)
 	if uop ~= "OPR_NOUNOPR" then
-		luaX:next(ls)
-		self:subexpr(ls, v, self.UNARY_PRIORITY)
-		luaK:prefix(ls.fs, uop, v)
+		luaX.next(ls)
+		luaY.subexpr(ls, v, luaY.UNARY_PRIORITY)
+		luaK.prefix(ls.fs, uop, v)
 	else
-		self:simpleexp(ls, v)
+		luaY.simpleexp(ls, v)
 	end
 	-- expand while operators have priorities higher than 'limit'
-	local op = self:getbinopr(ls.t.token)
-	while op ~= "OPR_NOBINOPR" and self.priority[luaK.BinOpr[op] + 1][1] > limit do
+	local op = luaY.getbinopr(ls.t.token)
+	while op ~= "OPR_NOBINOPR" and luaY.priority[luaK.BinOpr[op] + 1][1] > limit do
 		local v2 = {} -- expdesc
-		luaX:next(ls)
-		luaK:infix(ls.fs, op, v)
+		luaX.next(ls)
+		luaK.infix(ls.fs, op, v)
 		-- read sub-expression with higher priority
-		local nextop = self:subexpr(ls, v2, self.priority[luaK.BinOpr[op] + 1][2])
-		luaK:posfix(ls.fs, op, v, v2)
+		local nextop = luaY.subexpr(ls, v2, luaY.priority[luaK.BinOpr[op] + 1][2])
+		luaK.posfix(ls.fs, op, v, v2)
 		op = nextop
 	end
-	self:leavelevel(ls)
+	luaY.leavelevel(ls)
 	return op -- return first untreated operator
 end
 
@@ -1241,8 +1241,8 @@ end
 -- than all actual operators. Expr information is returned in parm v.
 -- * used in multiple locations
 ------------------------------------------------------------------------
-function luaY:expr(ls, v)
-	self:subexpr(ls, v, 0)
+function luaY.expr(ls, v)
+	luaY.subexpr(ls, v, 0)
 end
 
 -- }====================================================================
@@ -1256,7 +1256,7 @@ end
 -- * returns boolean instead of 0|1
 -- * used in retstat(), chunk()
 ------------------------------------------------------------------------
-function luaY:block_follow(token)
+function luaY.block_follow(token)
 	if token == "TK_ELSE" or token == "TK_ELSEIF" or token == "TK_END" or token == "TK_UNTIL" or token == "TK_EOS" then
 		return true
 	else
@@ -1268,14 +1268,14 @@ end
 -- parse a code block or unit
 -- * used in multiple functions
 ------------------------------------------------------------------------
-function luaY:block(ls)
+function luaY.block(ls)
 	-- block -> chunk
 	local fs = ls.fs
 	local bl = {} -- BlockCnt
-	self:enterblock(fs, bl, false)
-	self:chunk(ls)
-	lua_assert(bl.breaklist == luaK.NO_JUMP)
-	self:leaveblock(fs)
+	luaY.enterblock(fs, bl, false)
+	luaY.chunk(ls)
+	assert(bl.breaklist == luaK.NO_JUMP)
+	luaY.leaveblock(fs)
 end
 
 ------------------------------------------------------------------------
@@ -1293,7 +1293,7 @@ end
 -- assignment.
 -- * used in assignment()
 ------------------------------------------------------------------------
-function luaY:check_conflict(ls, lh, v)
+function luaY.check_conflict(ls, lh, v)
 	local fs = ls.fs
 	local extra = fs.freereg -- eventual position to save local variable
 	local conflict = false
@@ -1311,8 +1311,8 @@ function luaY:check_conflict(ls, lh, v)
 		lh = lh.prev
 	end
 	if conflict then
-		luaK:codeABC(fs, "OP_MOVE", fs.freereg, v.info, 0) -- make copy
-		luaK:reserveregs(fs, 1)
+		luaK.codeABC(fs, "OP_MOVE", fs.freereg, v.info, 0) -- make copy
+		luaK.reserveregs(fs, 1)
 	end
 end
 
@@ -1321,51 +1321,51 @@ end
 -- * recursively called
 -- * used in exprstat()
 ------------------------------------------------------------------------
-function luaY:assignment(ls, lh, nvars)
+function luaY.assignment(ls, lh, nvars)
 	local e = {} -- expdesc
 	-- test was: VLOCAL <= lh->v.k && lh->v.k <= VINDEXED
 	local c = lh.v.k
-	self:check_condition(ls, c == "VLOCAL" or c == "VUPVAL" or c == "VGLOBAL" or c == "VINDEXED", "syntax error")
-	if self:testnext(ls, ",") then -- assignment -> ',' primaryexp assignment
+	luaY.check_condition(ls, c == "VLOCAL" or c == "VUPVAL" or c == "VGLOBAL" or c == "VINDEXED", "syntax error")
+	if luaY.testnext(ls, ",") then -- assignment -> ',' primaryexp assignment
 		local nv = {} -- LHS_assign
 		nv.v = {}
 		nv.prev = lh
-		self:primaryexp(ls, nv.v)
+		luaY.primaryexp(ls, nv.v)
 		if nv.v.k == "VLOCAL" then
-			self:check_conflict(ls, lh, nv.v)
+			luaY.check_conflict(ls, lh, nv.v)
 		end
-		self:checklimit(ls.fs, nvars, self.LUAI_MAXCCALLS - ls.L.nCcalls, "variables in assignment")
-		self:assignment(ls, nv, nvars + 1)
+		luaY.checklimit(ls.fs, nvars, luaY.LUAI_MAXCCALLS - ls.L.nCcalls, "variables in assignment")
+		luaY.assignment(ls, nv, nvars + 1)
 	else -- assignment -> '=' explist1
-		self:checknext(ls, "=")
-		local nexps = self:explist1(ls, e)
+		luaY.checknext(ls, "=")
+		local nexps = luaY.explist1(ls, e)
 		if nexps ~= nvars then
-			self:adjust_assign(ls, nvars, nexps, e)
+			luaY.adjust_assign(ls, nvars, nexps, e)
 			if nexps > nvars then
 				ls.fs.freereg = ls.fs.freereg - (nexps - nvars) -- remove extra values
 			end
 		else
-			luaK:setoneret(ls.fs, e) -- close last expression
-			luaK:storevar(ls.fs, lh.v, e)
+			luaK.setoneret(ls.fs, e) -- close last expression
+			luaK.storevar(ls.fs, lh.v, e)
 			return -- avoid default
 		end
 	end
-	self:init_exp(e, "VNONRELOC", ls.fs.freereg - 1) -- default assignment
-	luaK:storevar(ls.fs, lh.v, e)
+	luaY.init_exp(e, "VNONRELOC", ls.fs.freereg - 1) -- default assignment
+	luaK.storevar(ls.fs, lh.v, e)
 end
 
 ------------------------------------------------------------------------
 -- parse condition in a repeat statement or an if control structure
 -- * used in repeatstat(), test_then_block()
 ------------------------------------------------------------------------
-function luaY:cond(ls)
+function luaY.cond(ls)
 	-- cond -> exp
 	local v = {} -- expdesc
-	self:expr(ls, v) -- read condition
+	luaY.expr(ls, v) -- read condition
 	if v.k == "VNIL" then
 		v.k = "VFALSE"
 	end -- 'falses' are all equal here
-	luaK:goiftrue(ls.fs, v)
+	luaK.goiftrue(ls.fs, v)
 	return v.f
 end
 
@@ -1373,7 +1373,7 @@ end
 -- parse a break statement
 -- * used in statements()
 ------------------------------------------------------------------------
-function luaY:breakstat(ls)
+function luaY.breakstat(ls)
 	-- stat -> BREAK
 	local fs = ls.fs
 	local bl = fs.bl
@@ -1385,12 +1385,12 @@ function luaY:breakstat(ls)
 		bl = bl.previous
 	end
 	if not bl then
-		luaX:syntaxerror(ls, "no loop to break")
+		luaX.syntaxerror(ls, "no loop to break")
 	end
 	if upval then
-		luaK:codeABC(fs, "OP_CLOSE", bl.nactvar, 0, 0)
+		luaK.codeABC(fs, "OP_CLOSE", bl.nactvar, 0, 0)
 	end
-	bl.breaklist = luaK:concat(fs, bl.breaklist, luaK:jump(fs))
+	bl.breaklist = luaK.concat(fs, bl.breaklist, luaK.jump(fs))
 end
 
 ------------------------------------------------------------------------
@@ -1399,58 +1399,58 @@ end
 --   the function's implementation can be removed
 -- * used in statements()
 ------------------------------------------------------------------------
-function luaY:whilestat(ls, line)
+function luaY.whilestat(ls, line)
 	-- whilestat -> WHILE cond DO block END
 	local fs = ls.fs
 	local bl = {} -- BlockCnt
-	luaX:next(ls) -- skip WHILE
-	local whileinit = luaK:getlabel(fs)
-	local condexit = self:cond(ls)
-	self:enterblock(fs, bl, true)
-	self:checknext(ls, "TK_DO")
-	self:block(ls)
-	luaK:patchlist(fs, luaK:jump(fs), whileinit)
-	self:check_match(ls, "TK_END", "TK_WHILE", line)
-	self:leaveblock(fs)
-	luaK:patchtohere(fs, condexit) -- false conditions finish the loop
+	luaX.next(ls) -- skip WHILE
+	local whileinit = luaK.getlabel(fs)
+	local condexit = luaY.cond(ls)
+	luaY.enterblock(fs, bl, true)
+	luaY.checknext(ls, "TK_DO")
+	luaY.block(ls)
+	luaK.patchlist(fs, luaK.jump(fs), whileinit)
+	luaY.check_match(ls, "TK_END", "TK_WHILE", line)
+	luaY.leaveblock(fs)
+	luaK.patchtohere(fs, condexit) -- false conditions finish the loop
 end
 
 ------------------------------------------------------------------------
 -- parse a repeat-until control structure, body parsed by chunk()
 -- * used in statements()
 ------------------------------------------------------------------------
-function luaY:repeatstat(ls, line)
+function luaY.repeatstat(ls, line)
 	-- repeatstat -> REPEAT block UNTIL cond
 	local fs = ls.fs
-	local repeat_init = luaK:getlabel(fs)
+	local repeat_init = luaK.getlabel(fs)
 	local bl1, bl2 = {}, {} -- BlockCnt
-	self:enterblock(fs, bl1, true) -- loop block
-	self:enterblock(fs, bl2, false) -- scope block
-	luaX:next(ls) -- skip REPEAT
-	self:chunk(ls)
-	self:check_match(ls, "TK_UNTIL", "TK_REPEAT", line)
-	local condexit = self:cond(ls) -- read condition (inside scope block)
+	luaY.enterblock(fs, bl1, true) -- loop block
+	luaY.enterblock(fs, bl2, false) -- scope block
+	luaX.next(ls) -- skip REPEAT
+	luaY.chunk(ls)
+	luaY.check_match(ls, "TK_UNTIL", "TK_REPEAT", line)
+	local condexit = luaY.cond(ls) -- read condition (inside scope block)
 	if not bl2.upval then -- no upvalues?
-		self:leaveblock(fs) -- finish scope
-		luaK:patchlist(ls.fs, condexit, repeat_init) -- close the loop
+		luaY.leaveblock(fs) -- finish scope
+		luaK.patchlist(ls.fs, condexit, repeat_init) -- close the loop
 	else -- complete semantics when there are upvalues
-		self:breakstat(ls) -- if condition then break
-		luaK:patchtohere(ls.fs, condexit) -- else...
-		self:leaveblock(fs) -- finish scope...
-		luaK:patchlist(ls.fs, luaK:jump(fs), repeat_init) -- and repeat
+		luaY.breakstat(ls) -- if condition then break
+		luaK.patchtohere(ls.fs, condexit) -- else...
+		luaY.leaveblock(fs) -- finish scope...
+		luaK.patchlist(ls.fs, luaK.jump(fs), repeat_init) -- and repeat
 	end
-	self:leaveblock(fs) -- finish loop
+	luaY.leaveblock(fs) -- finish loop
 end
 
 ------------------------------------------------------------------------
 -- parse the single expressions needed in numerical for loops
 -- * used in fornum()
 ------------------------------------------------------------------------
-function luaY:exp1(ls)
+function luaY.exp1(ls)
 	local e = {} -- expdesc
-	self:expr(ls, e)
+	luaY.expr(ls, e)
 	local k = e.k
-	luaK:exp2nextreg(ls.fs, e)
+	luaK.exp2nextreg(ls.fs, e)
 	return k
 end
 
@@ -1458,114 +1458,114 @@ end
 -- parse a for loop body for both versions of the for loop
 -- * used in fornum(), forlist()
 ------------------------------------------------------------------------
-function luaY:forbody(ls, base, line, nvars, isnum)
+function luaY.forbody(ls, base, line, nvars, isnum)
 	-- forbody -> DO block
 	local bl = {} -- BlockCnt
 	local fs = ls.fs
-	self:adjustlocalvars(ls, 3) -- control variables
-	self:checknext(ls, "TK_DO")
-	local prep = isnum and luaK:codeAsBx(fs, "OP_FORPREP", base, luaK.NO_JUMP) or luaK:jump(fs)
-	self:enterblock(fs, bl, false) -- scope for declared variables
-	self:adjustlocalvars(ls, nvars)
-	luaK:reserveregs(fs, nvars)
-	self:block(ls)
-	self:leaveblock(fs) -- end of scope for declared variables
-	luaK:patchtohere(fs, prep)
-	local endfor = isnum and luaK:codeAsBx(fs, "OP_FORLOOP", base, luaK.NO_JUMP)
-		or luaK:codeABC(fs, "OP_TFORLOOP", base, 0, nvars)
-	luaK:fixline(fs, line) -- pretend that `OP_FOR' starts the loop
-	luaK:patchlist(fs, isnum and endfor or luaK:jump(fs), prep + 1)
+	luaY.adjustlocalvars(ls, 3) -- control variables
+	luaY.checknext(ls, "TK_DO")
+	local prep = isnum and luaK.codeAsBx(fs, "OP_FORPREP", base, luaK.NO_JUMP) or luaK.jump(fs)
+	luaY.enterblock(fs, bl, false) -- scope for declared variables
+	luaY.adjustlocalvars(ls, nvars)
+	luaK.reserveregs(fs, nvars)
+	luaY.block(ls)
+	luaY.leaveblock(fs) -- end of scope for declared variables
+	luaK.patchtohere(fs, prep)
+	local endfor = isnum and luaK.codeAsBx(fs, "OP_FORLOOP", base, luaK.NO_JUMP)
+		or luaK.codeABC(fs, "OP_TFORLOOP", base, 0, nvars)
+	luaK.fixline(fs, line) -- pretend that `OP_FOR' starts the loop
+	luaK.patchlist(fs, isnum and endfor or luaK.jump(fs), prep + 1)
 end
 
 ------------------------------------------------------------------------
 -- parse a numerical for loop, calls forbody()
 -- * used in forstat()
 ------------------------------------------------------------------------
-function luaY:fornum(ls, varname, line)
+function luaY.fornum(ls, varname, line)
 	-- fornum -> NAME = exp1,exp1[,exp1] forbody
 	local fs = ls.fs
 	local base = fs.freereg
-	self:new_localvarliteral(ls, "(for index)", 0)
-	self:new_localvarliteral(ls, "(for limit)", 1)
-	self:new_localvarliteral(ls, "(for step)", 2)
-	self:new_localvar(ls, varname, 3)
-	self:checknext(ls, "=")
-	self:exp1(ls) -- initial value
-	self:checknext(ls, ",")
-	self:exp1(ls) -- limit
-	if self:testnext(ls, ",") then
-		self:exp1(ls) -- optional step
+	luaY.new_localvarliteral(ls, "(for index)", 0)
+	luaY.new_localvarliteral(ls, "(for limit)", 1)
+	luaY.new_localvarliteral(ls, "(for step)", 2)
+	luaY.new_localvar(ls, varname, 3)
+	luaY.checknext(ls, "=")
+	luaY.exp1(ls) -- initial value
+	luaY.checknext(ls, ",")
+	luaY.exp1(ls) -- limit
+	if luaY.testnext(ls, ",") then
+		luaY.exp1(ls) -- optional step
 	else -- default step = 1
-		luaK:codeABx(fs, "OP_LOADK", fs.freereg, luaK:numberK(fs, 1))
-		luaK:reserveregs(fs, 1)
+		luaK.codeABx(fs, "OP_LOADK", fs.freereg, luaK.numberK(fs, 1))
+		luaK.reserveregs(fs, 1)
 	end
-	self:forbody(ls, base, line, 1, true)
+	luaY.forbody(ls, base, line, 1, true)
 end
 
 ------------------------------------------------------------------------
 -- parse a generic for loop, calls forbody()
 -- * used in forstat()
 ------------------------------------------------------------------------
-function luaY:forlist(ls, indexname)
+function luaY.forlist(ls, indexname)
 	-- forlist -> NAME {,NAME} IN explist1 forbody
 	local fs = ls.fs
 	local e = {} -- expdesc
 	local nvars = 0
 	local base = fs.freereg
 	-- create control variables
-	self:new_localvarliteral(ls, "(for generator)", nvars)
+	luaY.new_localvarliteral(ls, "(for generator)", nvars)
 	nvars = nvars + 1
-	self:new_localvarliteral(ls, "(for state)", nvars)
+	luaY.new_localvarliteral(ls, "(for state)", nvars)
 	nvars = nvars + 1
-	self:new_localvarliteral(ls, "(for control)", nvars)
+	luaY.new_localvarliteral(ls, "(for control)", nvars)
 	nvars = nvars + 1
 	-- create declared variables
-	self:new_localvar(ls, indexname, nvars)
+	luaY.new_localvar(ls, indexname, nvars)
 	nvars = nvars + 1
-	while self:testnext(ls, ",") do
-		self:new_localvar(ls, self:str_checkname(ls), nvars)
+	while luaY.testnext(ls, ",") do
+		luaY.new_localvar(ls, luaY.str_checkname(ls), nvars)
 		nvars = nvars + 1
 	end
-	self:checknext(ls, "TK_IN")
+	luaY.checknext(ls, "TK_IN")
 	local line = ls.linenumber
-	self:adjust_assign(ls, 3, self:explist1(ls, e), e)
-	luaK:checkstack(fs, 3) -- extra space to call generator
-	self:forbody(ls, base, line, nvars - 3, false)
+	luaY.adjust_assign(ls, 3, luaY.explist1(ls, e), e)
+	luaK.checkstack(fs, 3) -- extra space to call generator
+	luaY.forbody(ls, base, line, nvars - 3, false)
 end
 
 ------------------------------------------------------------------------
 -- initial parsing for a for loop, calls fornum() or forlist()
 -- * used in statements()
 ------------------------------------------------------------------------
-function luaY:forstat(ls, line)
+function luaY.forstat(ls, line)
 	-- forstat -> FOR (fornum | forlist) END
 	local fs = ls.fs
 	local bl = {} -- BlockCnt
-	self:enterblock(fs, bl, true) -- scope for loop and control variables
-	luaX:next(ls) -- skip `for'
-	local varname = self:str_checkname(ls) -- first variable name
+	luaY.enterblock(fs, bl, true) -- scope for loop and control variables
+	luaX.next(ls) -- skip `for'
+	local varname = luaY.str_checkname(ls) -- first variable name
 	local c = ls.t.token
 	if c == "=" then
-		self:fornum(ls, varname, line)
+		luaY.fornum(ls, varname, line)
 	elseif c == "," or c == "TK_IN" then
-		self:forlist(ls, varname)
+		luaY.forlist(ls, varname)
 	else
-		luaX:syntaxerror(ls, self:LUA_QL("=") .. " or " .. self:LUA_QL("in") .. " expected")
+		luaX.syntaxerror(ls, luaY.LUA_QL("=") .. " or " .. luaY.LUA_QL("in") .. " expected")
 	end
-	self:check_match(ls, "TK_END", "TK_FOR", line)
-	self:leaveblock(fs) -- loop scope (`break' jumps to this point)
+	luaY.check_match(ls, "TK_END", "TK_FOR", line)
+	luaY.leaveblock(fs) -- loop scope (`break' jumps to this point)
 end
 
 ------------------------------------------------------------------------
 -- parse part of an if control structure, including the condition
 -- * used in ifstat()
 ------------------------------------------------------------------------
-function luaY:test_then_block(ls)
+function luaY.test_then_block(ls)
 	-- test_then_block -> [IF | ELSEIF] cond THEN block
-	luaX:next(ls) -- skip IF or ELSEIF
-	local condexit = self:cond(ls)
-	self:checknext(ls, "TK_THEN")
-	self:block(ls) -- `then' part
+	luaX.next(ls) -- skip IF or ELSEIF
+	local condexit = luaY.cond(ls)
+	luaY.checknext(ls, "TK_THEN")
+	luaY.block(ls) -- `then' part
 	return condexit
 end
 
@@ -1573,82 +1573,82 @@ end
 -- parse an if control structure
 -- * used in statements()
 ------------------------------------------------------------------------
-function luaY:ifstat(ls, line)
+function luaY.ifstat(ls, line)
 	-- ifstat -> IF cond THEN block {ELSEIF cond THEN block} [ELSE block] END
 	local fs = ls.fs
 	local escapelist = luaK.NO_JUMP
-	local flist = self:test_then_block(ls) -- IF cond THEN block
+	local flist = luaY.test_then_block(ls) -- IF cond THEN block
 	while ls.t.token == "TK_ELSEIF" do
-		escapelist = luaK:concat(fs, escapelist, luaK:jump(fs))
-		luaK:patchtohere(fs, flist)
-		flist = self:test_then_block(ls) -- ELSEIF cond THEN block
+		escapelist = luaK.concat(fs, escapelist, luaK.jump(fs))
+		luaK.patchtohere(fs, flist)
+		flist = luaY.test_then_block(ls) -- ELSEIF cond THEN block
 	end
 	if ls.t.token == "TK_ELSE" then
-		escapelist = luaK:concat(fs, escapelist, luaK:jump(fs))
-		luaK:patchtohere(fs, flist)
-		luaX:next(ls) -- skip ELSE (after patch, for correct line info)
-		self:block(ls) -- 'else' part
+		escapelist = luaK.concat(fs, escapelist, luaK.jump(fs))
+		luaK.patchtohere(fs, flist)
+		luaX.next(ls) -- skip ELSE (after patch, for correct line info)
+		luaY.block(ls) -- 'else' part
 	else
-		escapelist = luaK:concat(fs, escapelist, flist)
+		escapelist = luaK.concat(fs, escapelist, flist)
 	end
-	luaK:patchtohere(fs, escapelist)
-	self:check_match(ls, "TK_END", "TK_IF", line)
+	luaK.patchtohere(fs, escapelist)
+	luaY.check_match(ls, "TK_END", "TK_IF", line)
 end
 
 ------------------------------------------------------------------------
 -- parse a local function statement
 -- * used in statements()
 ------------------------------------------------------------------------
-function luaY:localfunc(ls)
+function luaY.localfunc(ls)
 	local v, b = {}, {} -- expdesc
 	local fs = ls.fs
-	self:new_localvar(ls, self:str_checkname(ls), 0)
-	self:init_exp(v, "VLOCAL", fs.freereg)
-	luaK:reserveregs(fs, 1)
-	self:adjustlocalvars(ls, 1)
-	self:body(ls, b, false, ls.linenumber)
-	luaK:storevar(fs, v, b)
+	luaY.new_localvar(ls, luaY.str_checkname(ls), 0)
+	luaY.init_exp(v, "VLOCAL", fs.freereg)
+	luaK.reserveregs(fs, 1)
+	luaY.adjustlocalvars(ls, 1)
+	luaY.body(ls, b, false, ls.linenumber)
+	luaK.storevar(fs, v, b)
 	-- debug information will only see the variable after this point!
-	self:getlocvar(fs, fs.nactvar - 1).startpc = fs.pc
+	luaY.getlocvar(fs, fs.nactvar - 1).startpc = fs.pc
 end
 
 ------------------------------------------------------------------------
 -- parse a local variable declaration statement
 -- * used in statements()
 ------------------------------------------------------------------------
-function luaY:localstat(ls)
+function luaY.localstat(ls)
 	-- stat -> LOCAL NAME {',' NAME} ['=' explist1]
 	local nvars = 0
 	local nexps
 	local e = {} -- expdesc
 	repeat
-		self:new_localvar(ls, self:str_checkname(ls), nvars)
+		luaY.new_localvar(ls, luaY.str_checkname(ls), nvars)
 		nvars = nvars + 1
-	until not self:testnext(ls, ",")
-	if self:testnext(ls, "=") then
-		nexps = self:explist1(ls, e)
+	until not luaY.testnext(ls, ",")
+	if luaY.testnext(ls, "=") then
+		nexps = luaY.explist1(ls, e)
 	else
 		e.k = "VVOID"
 		nexps = 0
 	end
-	self:adjust_assign(ls, nvars, nexps, e)
-	self:adjustlocalvars(ls, nvars)
+	luaY.adjust_assign(ls, nvars, nexps, e)
+	luaY.adjustlocalvars(ls, nvars)
 end
 
 ------------------------------------------------------------------------
 -- parse a function name specification
 -- * used in funcstat()
 ------------------------------------------------------------------------
-function luaY:funcname(ls, v)
+function luaY.funcname(ls, v)
 	-- funcname -> NAME {field} [':' NAME]
 	local needself = false
-	self:singlevar(ls, v)
+	luaY.singlevar(ls, v)
 	while ls.t.token == "." do
-		self:field(ls, v)
+		luaY.field(ls, v)
 	end
 	if ls.t.token == ":" then
 		needself = true
-		self:field(ls, v)
+		luaY.field(ls, v)
 	end
 	return needself
 end
@@ -1657,31 +1657,31 @@ end
 -- parse a function statement
 -- * used in statements()
 ------------------------------------------------------------------------
-function luaY:funcstat(ls, line)
+function luaY.funcstat(ls, line)
 	-- funcstat -> FUNCTION funcname body
 	local v, b = {}, {} -- expdesc
-	luaX:next(ls) -- skip FUNCTION
-	local needself = self:funcname(ls, v)
-	self:body(ls, b, needself, line)
-	luaK:storevar(ls.fs, v, b)
-	luaK:fixline(ls.fs, line) -- definition 'happens' in the first line
+	luaX.next(ls) -- skip FUNCTION
+	local needself = luaY.funcname(ls, v)
+	luaY.body(ls, b, needself, line)
+	luaK.storevar(ls.fs, v, b)
+	luaK.fixline(ls.fs, line) -- definition 'happens' in the first line
 end
 
 ------------------------------------------------------------------------
 -- parse a function call with no returns or an assignment statement
 -- * used in statements()
 ------------------------------------------------------------------------
-function luaY:exprstat(ls)
+function luaY.exprstat(ls)
 	-- stat -> func | assignment
 	local fs = ls.fs
 	local v = {} -- LHS_assign
 	v.v = {}
-	self:primaryexp(ls, v.v)
+	luaY.primaryexp(ls, v.v)
 	if v.v.k == "VCALL" then -- stat -> func
-		luaP:SETARG_C(luaK:getcode(fs, v.v), 1) -- call statement uses no results
+		luaP.SETARG_C(luaK.getcode(fs, v.v), 1) -- call statement uses no results
 	else -- stat -> assignment
 		v.prev = nil
-		self:assignment(ls, v, 1)
+		luaY.assignment(ls, v, 1)
 	end
 end
 
@@ -1689,35 +1689,35 @@ end
 -- parse a return statement
 -- * used in statements()
 ------------------------------------------------------------------------
-function luaY:retstat(ls)
+function luaY.retstat(ls)
 	-- stat -> RETURN explist
 	local fs = ls.fs
 	local e = {} -- expdesc
 	local first, nret -- registers with returned values
-	luaX:next(ls) -- skip RETURN
-	if self:block_follow(ls.t.token) or ls.t.token == ";" then
+	luaX.next(ls) -- skip RETURN
+	if luaY.block_follow(ls.t.token) or ls.t.token == ";" then
 		first, nret = 0, 0 -- return no values
 	else
-		nret = self:explist1(ls, e) -- optional return values
-		if self:hasmultret(e.k) then
-			luaK:setmultret(fs, e)
+		nret = luaY.explist1(ls, e) -- optional return values
+		if luaY.hasmultret(e.k) then
+			luaK.setmultret(fs, e)
 			if e.k == "VCALL" and nret == 1 then -- tail call?
-				luaP:SET_OPCODE(luaK:getcode(fs, e), "OP_TAILCALL")
-				lua_assert(luaP:GETARG_A(luaK:getcode(fs, e)) == fs.nactvar)
+				luaP.SET_OPCODE(luaK.getcode(fs, e), "OP_TAILCALL")
+				assert(luaP.GETARG_A(luaK.getcode(fs, e)) == fs.nactvar)
 			end
 			first = fs.nactvar
-			nret = self.LUA_MULTRET -- return all values
+			nret = luaY.LUA_MULTRET -- return all values
 		else
 			if nret == 1 then -- only one single value?
-				first = luaK:exp2anyreg(fs, e)
+				first = luaK.exp2anyreg(fs, e)
 			else
-				luaK:exp2nextreg(fs, e) -- values must go to the 'stack'
+				luaK.exp2nextreg(fs, e) -- values must go to the 'stack'
 				first = fs.nactvar -- return all 'active' values
-				lua_assert(nret == fs.freereg - first)
+				assert(nret == fs.freereg - first)
 			end
 		end --if
 	end --if
-	luaK:ret(fs, first, nret)
+	luaK.ret(fs, first, nret)
 end
 
 ------------------------------------------------------------------------
@@ -1725,46 +1725,46 @@ end
 -- * returns boolean instead of 0|1
 -- * used in chunk()
 ------------------------------------------------------------------------
-function luaY:statement(ls)
+function luaY.statement(ls)
 	local line = ls.linenumber -- may be needed for error messages
 	local c = ls.t.token
 	if c == "TK_IF" then -- stat -> ifstat
-		self:ifstat(ls, line)
+		luaY.ifstat(ls, line)
 		return false
 	elseif c == "TK_WHILE" then -- stat -> whilestat
-		self:whilestat(ls, line)
+		luaY.whilestat(ls, line)
 		return false
 	elseif c == "TK_DO" then -- stat -> DO block END
-		luaX:next(ls) -- skip DO
-		self:block(ls)
-		self:check_match(ls, "TK_END", "TK_DO", line)
+		luaX.next(ls) -- skip DO
+		luaY.block(ls)
+		luaY.check_match(ls, "TK_END", "TK_DO", line)
 		return false
 	elseif c == "TK_FOR" then -- stat -> forstat
-		self:forstat(ls, line)
+		luaY.forstat(ls, line)
 		return false
 	elseif c == "TK_REPEAT" then -- stat -> repeatstat
-		self:repeatstat(ls, line)
+		luaY.repeatstat(ls, line)
 		return false
 	elseif c == "TK_FUNCTION" then -- stat -> funcstat
-		self:funcstat(ls, line)
+		luaY.funcstat(ls, line)
 		return false
 	elseif c == "TK_LOCAL" then -- stat -> localstat
-		luaX:next(ls) -- skip LOCAL
-		if self:testnext(ls, "TK_FUNCTION") then -- local function?
-			self:localfunc(ls)
+		luaX.next(ls) -- skip LOCAL
+		if luaY.testnext(ls, "TK_FUNCTION") then -- local function?
+			luaY.localfunc(ls)
 		else
-			self:localstat(ls)
+			luaY.localstat(ls)
 		end
 		return false
 	elseif c == "TK_RETURN" then -- stat -> retstat
-		self:retstat(ls)
+		luaY.retstat(ls)
 		return true -- must be last statement
 	elseif c == "TK_BREAK" then -- stat -> breakstat
-		luaX:next(ls) -- skip BREAK
-		self:breakstat(ls)
+		luaX.next(ls) -- skip BREAK
+		luaY.breakstat(ls)
 		return true -- must be last statement
 	else
-		self:exprstat(ls)
+		luaY.exprstat(ls)
 		return false -- to avoid warnings
 	end --if c
 end
@@ -1773,17 +1773,17 @@ end
 -- parse a chunk, which consists of a bunch of statements
 -- * used in parser(), body(), block(), repeatstat()
 ------------------------------------------------------------------------
-function luaY:chunk(ls)
+function luaY.chunk(ls)
 	-- chunk -> { stat [';'] }
 	local islast = false
-	self:enterlevel(ls)
-	while not islast and not self:block_follow(ls.t.token) do
-		islast = self:statement(ls)
-		self:testnext(ls, ";")
-		lua_assert(ls.fs.f.maxstacksize >= ls.fs.freereg and ls.fs.freereg >= ls.fs.nactvar)
+	luaY.enterlevel(ls)
+	while not islast and not luaY.block_follow(ls.t.token) do
+		islast = luaY.statement(ls)
+		luaY.testnext(ls, ";")
+		assert(ls.fs.f.maxstacksize >= ls.fs.freereg and ls.fs.freereg >= ls.fs.nactvar)
 		ls.fs.freereg = ls.fs.nactvar -- free registers
 	end
-	self:leavelevel(ls)
+	luaY.leavelevel(ls)
 end
 
 -- }======================================================================

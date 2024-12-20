@@ -28,7 +28,7 @@ local luaU = require("./ldump")
 local luaK = require("./lcode")
 local luaY = require("./lparser")
 
-luaX:init() -- required by llex
+luaX.init() -- required by llex
 local LuaState = {} -- dummy, not actually used, but retained since
 -- the intention is to complete a straight port
 
@@ -38,21 +38,21 @@ local LuaState = {} -- dummy, not actually used, but retained since
 
 return function(source, name)
 	name = name or "compiled-lua"
-	-- luaZ:make_getF returns a file chunk reader
-	-- luaZ:init returns a zio input stream
-	local zio = luaZ:init(luaZ:make_getF(source), nil)
+	-- luaZ.make_getF returns a file chunk reader
+	-- luaZ.init returns a zio input stream
+	local zio = luaZ.init(luaZ.make_getF(source), nil)
 	if not zio then
 		return
 	end
-	-- luaY:parser parses the input stream
+	-- luaY.parser parses the input stream
 	-- func is the function prototype in tabular form; in C, func can
 	-- now be used directly by the VM, this can't be done in Lua
 
-	local func = luaY:parser(LuaState, zio, nil, "@" .. name)
-	-- luaU:make_setS returns a string chunk writer
-	local writer, buff = luaU:make_setS()
-	-- luaU:dump builds a binary chunk
-	luaU:dump(LuaState, func, writer, buff)
+	local func = luaY.parser(LuaState, zio, nil, "@" .. name)
+	-- luaU.make_setS returns a string chunk writer
+	local writer, buff = luaU.make_setS()
+	-- luaU.dump builds a binary chunk
+	luaU.dump(LuaState, func, writer, buff)
 	-- a string.dump equivalent in returned
 
 	return buff.data

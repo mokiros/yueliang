@@ -15,10 +15,10 @@
 --[[--------------------------------------------------------------------
 -- Notes:
 -- * WARNING! byte order (little endian) and data type sizes for header
---   signature values hard-coded; see luaU:header
+--   signature values hard-coded; see luaU.header
 -- * chunk writer generators are included, see below
 -- * one significant difference is that instructions are still in table
---   form (with OP/A/B/C/Bx fields) and luaP:Instruction() is needed to
+--   form (with OP/A/B/C/Bx fields) and luaP.Instruction() is needed to
 --   convert them into 4-char strings
 --
 -- Not implemented:
@@ -27,14 +27,14 @@
 --
 -- Added:
 -- * for convenience, the following two functions have been added:
---   luaU:make_setS: create a chunk writer that writes to a string
---   luaU:make_setF: create a chunk writer that writes to a file
+--   luaU.make_setS: create a chunk writer that writes to a string
+--   luaU.make_setF: create a chunk writer that writes to a file
 --   (lua.h contains a typedef for lua_Writer/lua_Chunkwriter, and
 --    a Lua-based implementation exists, writer() in lstrlib.c)
--- * luaU:ttype(o) (from lobject.h)
+-- * luaU.ttype(o) (from lobject.h)
 -- * for converting number types to its binary equivalent:
---   luaU:from_double(x): encode double value for writing
---   luaU:from_int(x): encode integer value for writing
+--   luaU.from_double(x): encode double value for writing
+--   luaU.from_int(x): encode integer value for writing
 --     (error checking is limited for these conversion functions)
 --     (double conversion does not support denormals or NaNs)
 --
@@ -51,9 +51,9 @@
 -- * code moved to front of a prototype, followed by constants
 -- * debug information moved to the end of the binary chunk, and the
 --   relevant functions folded into a single function
--- * luaU:dump returns a writer status code
+-- * luaU.dump returns a writer status code
 -- * chunk writer now implements status code because dumper uses it
--- * luaU:endianness removed
+-- * luaU.endianness removed
 ----------------------------------------------------------------------]]
 
 --requires luaP
@@ -88,7 +88,7 @@ luaU.LUAC_HEADERSIZE = 12 -- size of header of binary files
 -- * returns the writer function and a table containing the string
 -- * to get the final result, look in buff.data
 ------------------------------------------------------------------------
-function luaU:make_setS()
+function luaU.make_setS()
 	local buff = {}
 	buff.data = ""
 	local writer = function(s, buff) -- chunk writer
@@ -107,7 +107,7 @@ end
 -- * returns the writer function and a table containing the file handle
 -- * if a nil is passed, then writer should close the open file
 ------------------------------------------------------------------------
-function luaU:make_setF(filename)
+function luaU.make_setF(filename)
 	local buff = {}
 	buff.h = io.open(filename, "wb")
 	if not buff.h then
@@ -135,27 +135,27 @@ end
 -- works like the lobject.h version except that TObject used in these
 -- scripts only has a 'value' field, no 'tt' field (native types used)
 ------------------------------------------------------------------------
-function luaU:ttype(o)
+function luaU.ttype(o)
 	local tt = type(o.value)
 	if tt == "number" then
-		return self.LUA_TNUMBER
+		return luaU.LUA_TNUMBER
 	elseif tt == "string" then
-		return self.LUA_TSTRING
+		return luaU.LUA_TSTRING
 	elseif tt == "nil" then
-		return self.LUA_TNIL
+		return luaU.LUA_TNIL
 	elseif tt == "boolean" then
-		return self.LUA_TBOOLEAN
+		return luaU.LUA_TBOOLEAN
 	else
-		return self.LUA_TNONE -- the rest should not appear
+		return luaU.LUA_TNONE -- the rest should not appear
 	end
 end
 
 -----------------------------------------------------------------------
 -- converts a IEEE754 double number to an 8-byte little-endian string
--- * luaU:from_double() and luaU:from_int() are adapted from ChunkBake
+-- * luaU.from_double() and luaU.from_int() are adapted from ChunkBake
 -- * supports +/- Infinity, but not denormals or NaNs
 -----------------------------------------------------------------------
-function luaU:from_double(x)
+function luaU.from_double(x)
 	local function grab_byte(v)
 		local c = v % 256
 		return (v - c) / 256, string.char(c)
@@ -191,7 +191,7 @@ end
 -- converts a number to a little-endian 32-bit integer string
 -- * input value assumed to not overflow, can be signed/unsigned
 -----------------------------------------------------------------------
-function luaU:from_int(x)
+function luaU.from_int(x)
 	local v = ""
 	x = math.floor(x)
 	if x < 0 then
@@ -224,7 +224,7 @@ end
 -- dumps a block of bytes
 -- * lua_unlock(D.L), lua_lock(D.L) unused
 ------------------------------------------------------------------------
-function luaU:DumpBlock(b, D)
+function luaU.DumpBlock(b, D)
 	if D.status == 0 then
 		-- lua_unlock(D->L);
 		D.status = D.write(b, D.data)
@@ -235,56 +235,56 @@ end
 ------------------------------------------------------------------------
 -- dumps a char
 ------------------------------------------------------------------------
-function luaU:DumpChar(y, D)
-	self:DumpBlock(string.char(y), D)
+function luaU.DumpChar(y, D)
+	luaU.DumpBlock(string.char(y), D)
 end
 
 ------------------------------------------------------------------------
 -- dumps a 32-bit signed or unsigned integer (for int) (hard-coded)
 ------------------------------------------------------------------------
-function luaU:DumpInt(x, D)
-	self:DumpBlock(self:from_int(x), D)
+function luaU.DumpInt(x, D)
+	luaU.DumpBlock(luaU.from_int(x), D)
 end
 
 ------------------------------------------------------------------------
 -- dumps a 32-bit signed or unsigned integer (for int) (hard-coded)
 ------------------------------------------------------------------------
-function luaU:DumpSizeT(x, D)
-	self:DumpBlock(self:from_int(x), D)
+function luaU.DumpSizeT(x, D)
+	luaU.DumpBlock(luaU.from_int(x), D)
 	if size_size_t == 8 then
-		self:DumpBlock(self:from_int(0), D)
+		luaU.DumpBlock(luaU.from_int(0), D)
 	end
 end
 
 ------------------------------------------------------------------------
 -- dumps a lua_Number (hard-coded as a double)
 ------------------------------------------------------------------------
-function luaU:DumpNumber(x, D)
-	self:DumpBlock(self:from_double(x), D)
+function luaU.DumpNumber(x, D)
+	luaU.DumpBlock(luaU.from_double(x), D)
 end
 
 ------------------------------------------------------------------------
 -- dumps a Lua string (size type is hard-coded)
 ------------------------------------------------------------------------
-function luaU:DumpString(s, D)
+function luaU.DumpString(s, D)
 	if s == nil then
-		self:DumpSizeT(0, D)
+		luaU.DumpSizeT(0, D)
 	else
 		s = s .. "\0" -- include trailing '\0'
-		self:DumpSizeT(#s, D)
-		self:DumpBlock(s, D)
+		luaU.DumpSizeT(#s, D)
+		luaU.DumpBlock(s, D)
 	end
 end
 
 ------------------------------------------------------------------------
 -- dumps instruction block from function prototype
 ------------------------------------------------------------------------
-function luaU:DumpCode(f, D)
+function luaU.DumpCode(f, D)
 	local n = f.sizecode
 	--was DumpVector
-	self:DumpInt(n, D)
+	luaU.DumpInt(n, D)
 	for i = 0, n - 1 do
-		self:DumpBlock(luaP:Instruction(f.code[i]), D)
+		luaU.DumpBlock(luaP.Instruction(f.code[i]), D)
 	end
 end
 
@@ -292,95 +292,95 @@ end
 -- dump constant pool from function prototype
 -- * bvalue(o), nvalue(o) and rawtsvalue(o) macros removed
 ------------------------------------------------------------------------
-function luaU:DumpConstants(f, D)
+function luaU.DumpConstants(f, D)
 	local n = f.sizek
-	self:DumpInt(n, D)
+	luaU.DumpInt(n, D)
 	for i = 0, n - 1 do
 		local o = f.k[i] -- TValue
-		local tt = self:ttype(o)
-		self:DumpChar(tt, D)
-		if tt == self.LUA_TNIL then
-		elseif tt == self.LUA_TBOOLEAN then
-			self:DumpChar(o.value and 1 or 0, D)
-		elseif tt == self.LUA_TNUMBER then
-			self:DumpNumber(o.value, D)
-		elseif tt == self.LUA_TSTRING then
-			self:DumpString(o.value, D)
+		local tt = luaU.ttype(o)
+		luaU.DumpChar(tt, D)
+		if tt == luaU.LUA_TNIL then
+		elseif tt == luaU.LUA_TBOOLEAN then
+			luaU.DumpChar(o.value and 1 or 0, D)
+		elseif tt == luaU.LUA_TNUMBER then
+			luaU.DumpNumber(o.value, D)
+		elseif tt == luaU.LUA_TSTRING then
+			luaU.DumpString(o.value, D)
 		else
-			--lua_assert(0)  -- cannot happen
+			--assert(0)  -- cannot happen
 		end
 	end
 	n = f.sizep
-	self:DumpInt(n, D)
+	luaU.DumpInt(n, D)
 	for i = 0, n - 1 do
-		self:DumpFunction(f.p[i], f.source, D)
+		luaU.DumpFunction(f.p[i], f.source, D)
 	end
 end
 
 ------------------------------------------------------------------------
 -- dump debug information
 ------------------------------------------------------------------------
-function luaU:DumpDebug(f, D)
+function luaU.DumpDebug(f, D)
 	local n
 	n = D.strip and 0 or f.sizelineinfo -- dump line information
 	--was DumpVector
-	self:DumpInt(n, D)
+	luaU.DumpInt(n, D)
 	for i = 0, n - 1 do
-		self:DumpInt(f.lineinfo[i], D)
+		luaU.DumpInt(f.lineinfo[i], D)
 	end
 	n = D.strip and 0 or f.sizelocvars -- dump local information
-	self:DumpInt(n, D)
+	luaU.DumpInt(n, D)
 	for i = 0, n - 1 do
-		self:DumpString(f.locvars[i].varname, D)
-		self:DumpInt(f.locvars[i].startpc, D)
-		self:DumpInt(f.locvars[i].endpc, D)
+		luaU.DumpString(f.locvars[i].varname, D)
+		luaU.DumpInt(f.locvars[i].startpc, D)
+		luaU.DumpInt(f.locvars[i].endpc, D)
 	end
 	n = D.strip and 0 or f.sizeupvalues -- dump upvalue information
-	self:DumpInt(n, D)
+	luaU.DumpInt(n, D)
 	for i = 0, n - 1 do
-		self:DumpString(f.upvalues[i], D)
+		luaU.DumpString(f.upvalues[i], D)
 	end
 end
 
 ------------------------------------------------------------------------
 -- dump child function prototypes from function prototype
 ------------------------------------------------------------------------
-function luaU:DumpFunction(f, p, D)
+function luaU.DumpFunction(f, p, D)
 	local source = f.source
 	if source == p or D.strip then
 		source = nil
 	end
-	self:DumpString(source, D)
-	self:DumpInt(f.lineDefined, D)
-	self:DumpInt(f.lastlinedefined, D)
-	self:DumpChar(f.nups, D)
-	self:DumpChar(f.numparams, D)
-	self:DumpChar(f.is_vararg, D)
-	self:DumpChar(f.maxstacksize, D)
-	self:DumpCode(f, D)
-	self:DumpConstants(f, D)
-	self:DumpDebug(f, D)
+	luaU.DumpString(source, D)
+	luaU.DumpInt(f.lineDefined, D)
+	luaU.DumpInt(f.lastlinedefined, D)
+	luaU.DumpChar(f.nups, D)
+	luaU.DumpChar(f.numparams, D)
+	luaU.DumpChar(f.is_vararg, D)
+	luaU.DumpChar(f.maxstacksize, D)
+	luaU.DumpCode(f, D)
+	luaU.DumpConstants(f, D)
+	luaU.DumpDebug(f, D)
 end
 
 ------------------------------------------------------------------------
 -- dump Lua header section (some sizes hard-coded)
 ------------------------------------------------------------------------
-function luaU:DumpHeader(D)
-	local h = self:header()
-	assert(#h == self.LUAC_HEADERSIZE) -- fixed buffer now an assert
-	self:DumpBlock(h, D)
+function luaU.DumpHeader(D)
+	local h = luaU.header()
+	assert(#h == luaU.LUAC_HEADERSIZE) -- fixed buffer now an assert
+	luaU.DumpBlock(h, D)
 end
 
 ------------------------------------------------------------------------
 -- make header (from lundump.c)
 -- returns the header string
 ------------------------------------------------------------------------
-function luaU:header()
+function luaU.header()
 	local x = 1
-	return self.LUA_SIGNATURE
+	return luaU.LUA_SIGNATURE
 		.. string.char(
-			self.LUAC_VERSION,
-			self.LUAC_FORMAT,
+			luaU.LUAC_VERSION,
+			luaU.LUAC_FORMAT,
 			x, -- endianness (1=little)
 			4, -- sizeof(int)
 			size_size_t, -- sizeof(size_t)
@@ -395,15 +395,15 @@ end
 -- (lua_State* L, const Proto* f, lua_Writer w, void* data, int strip)
 -- * w, data are created from make_setS, make_setF
 ------------------------------------------------------------------------
-function luaU:dump(L, f, w, data, strip)
+function luaU.dump(L, f, w, data, strip)
 	local D = {} -- DumpState
 	D.L = L
 	D.write = w
 	D.data = data
 	D.strip = strip
 	D.status = 0
-	self:DumpHeader(D)
-	self:DumpFunction(f, nil, D)
+	luaU.DumpHeader(D)
+	luaU.DumpFunction(f, nil, D)
 	-- added: for a chunk writer writing to a file, this final call with
 	-- nil data is to indicate to the writer to close the file
 	D.write(nil, D.data)

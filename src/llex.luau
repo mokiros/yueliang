@@ -22,17 +22,17 @@
 -- * compatibility code is marked with "--#" comments
 --
 -- Added:
--- * luaX:chunkid (function luaO_chunkid from lobject.c)
--- * luaX:str2d (function luaO_str2d from lobject.c)
--- * luaX.LUA_QS used in luaX:lexerror (from luaconf.h)
--- * luaX.LUA_COMPAT_LSTR in luaX:read_long_string (from luaconf.h)
--- * luaX.MAX_INT used in luaX:inclinenumber (from llimits.h)
+-- * luaX.chunkid (function luaO_chunkid from lobject.c)
+-- * luaX.str2d (function luaO_str2d from lobject.c)
+-- * luaX.LUA_QS used in luaX.lexerror (from luaconf.h)
+-- * luaX.LUA_COMPAT_LSTR in luaX.read_long_string (from luaconf.h)
+-- * luaX.MAX_INT used in luaX.inclinenumber (from llimits.h)
 --
 -- To use the lexer:
--- (1) luaX:init() to initialize the lexer
--- (2) luaX:setinput() to set the input stream to lex
--- (3) call luaX:next() or luaX:luaX:lookahead() to get tokens,
---     until "TK_EOS": luaX:next()
+-- (1) luaX.init() to initialize the lexer
+-- (2) luaX.setinput() to set the input stream to lex
+-- (3) call luaX.next() or luaX.luaX.lookahead() to get tokens,
+--     until "TK_EOS": luaX.next()
 -- * since EOZ is returned as a string, be careful when regexp testing
 --
 -- Not implemented:
@@ -50,22 +50,24 @@
 -- * error message functions have been greatly simplified
 -- * token2string renamed to luaX_tokens, exposed in llex.h
 -- * lexer now handles all kinds of newlines, including CRLF
--- * shbang first line handling removed from luaX:setinput;
+-- * shbang first line handling removed from luaX.setinput;
 --   it is now done in lauxlib.c (luaL_loadfile)
 -- * next(ls) macro renamed to nextc(ls) due to new luaX_next function
 -- * EXTRABUFF and MAXNOCHECK removed due to lexer changes
 -- * checkbuffer(ls, len) macro deleted
--- * luaX:read_numeral now has 3 support functions: luaX:trydecpoint,
---   luaX:buffreplace and (luaO_str2d from lobject.c) luaX:str2d
--- * luaX:read_numeral is now more promiscuous in slurping characters;
+-- * luaX.read_numeral now has 3 support functions: luaX.trydecpoint,
+--   luaX.buffreplace and (luaO_str2d from lobject.c) luaX.str2d
+-- * luaX.read_numeral is now more promiscuous in slurping characters;
 --   hexadecimal numbers was added, locale-aware decimal points too
--- * luaX:skip_sep is new; used by luaX:read_long_string
--- * luaX:read_long_string handles new-style long blocks, with some
+-- * luaX.skip_sep is new; used by luaX.read_long_string
+-- * luaX.read_long_string handles new-style long blocks, with some
 --   optional compatibility code
--- * luaX:llex: parts changed to support new-style long blocks
--- * luaX:llex: readname functionality has been folded in
--- * luaX:llex: removed test for control characters
+-- * luaX.llex: parts changed to support new-style long blocks
+-- * luaX.llex: readname functionality has been folded in
+-- * luaX.llex: removed test for control characters
 ----------------------------------------------------------------------]]
+
+local luaZ = require("./lzio")
 
 local luaX = {}
 
@@ -123,7 +125,7 @@ TK_EOS <eof>]]
 --   token  -- token symbol
 --   seminfo  -- semantics information
 --
--- LexState (struct of ls; ls is initialized by luaX:setinput):
+-- LexState (struct of ls; ls is initialized by luaX.setinput):
 --   current  -- current character (charint)
 --   linenumber  -- input line counter
 --   lastline  -- line of last token 'consumed'
@@ -138,7 +140,7 @@ TK_EOS <eof>]]
 --   nestlevel  -- level of nested non-terminals
 ----------------------------------------------------------------------]]
 
--- luaX.tokens (was luaX_tokens) is now a hash; see luaX:init
+-- luaX.tokens (was luaX_tokens) is now a hash; see luaX.init
 
 luaX.MAXSRC = 80
 luaX.MAX_INT = 2147483645 -- constants from elsewhere (see above)
@@ -150,17 +152,17 @@ luaX.LUA_COMPAT_LSTR = 1
 -- initialize lexer
 -- * original luaX_init has code to create and register token strings
 -- * luaX.tokens: TK_* -> token
--- * luaX.enums:  token -> TK_* (used in luaX:llex)
+-- * luaX.enums:  token -> TK_* (used in luaX.llex)
 ------------------------------------------------------------------------
-function luaX:init()
+function luaX.init()
 	local tokens, enums = {}, {}
-	for v in string.gmatch(self.RESERVED, "[^\n]+") do
+	for v in string.gmatch(luaX.RESERVED, "[^\n]+") do
 		local _, _, tok, str = string.find(v, "(%S+)%s+(%S+)")
 		tokens[tok] = str
 		enums[str] = tok
 	end
-	self.tokens = tokens
-	self.enums = enums
+	luaX.tokens = tokens
+	luaX.enums = enums
 end
 
 ------------------------------------------------------------------------
@@ -168,7 +170,7 @@ end
 -- * from lobject.c, used in llex.c and ldebug.c
 -- * the result, out, is returned (was first argument)
 ------------------------------------------------------------------------
-function luaX:chunkid(source, bufflen)
+function luaX.chunkid(source, bufflen)
 	local out
 	local first = string.sub(source, 1, 1)
 	if first == "=" then
@@ -212,34 +214,34 @@ end
 ------------------------------------------------------------------------
 -- look up token and return keyword if found (also called by parser)
 ------------------------------------------------------------------------
-function luaX:token2str(ls, token)
+function luaX.token2str(ls, token)
 	if string.sub(token, 1, 3) ~= "TK_" then
 		if string.find(token, "%c") then
 			return string.format("char(%d)", string.byte(token))
 		end
 		return token
 	else
-		return self.tokens[token]
+		return luaX.tokens[token]
 	end
 end
 
 ------------------------------------------------------------------------
 -- throws a lexer error
--- * txtToken has been made local to luaX:lexerror
+-- * txtToken has been made local to luaX.lexerror
 -- * can't communicate LUA_ERRSYNTAX, so it is unimplemented
 ------------------------------------------------------------------------
-function luaX:lexerror(ls, msg, token)
+function luaX.lexerror(ls, msg, token)
 	local function txtToken(ls, token)
 		if token == "TK_NAME" or token == "TK_STRING" or token == "TK_NUMBER" then
 			return ls.buff
 		else
-			return self:token2str(ls, token)
+			return luaX.token2str(ls, token)
 		end
 	end
-	local buff = self:chunkid(ls.source, self.MAXSRC)
+	local buff = luaX.chunkid(ls.source, luaX.MAXSRC)
 	local msg = string.format("%s:%d: %s", buff, ls.linenumber, msg)
 	if token then
-		msg = string.format("%s near " .. self.LUA_QS, msg, txtToken(ls, token))
+		msg = string.format("%s near " .. luaX.LUA_QS, msg, txtToken(ls, token))
 	end
 	-- luaD_throw(ls->L, LUA_ERRSYNTAX)
 	error(msg)
@@ -247,30 +249,30 @@ end
 
 ------------------------------------------------------------------------
 -- throws a syntax error (mainly called by parser)
--- * ls.t.token has to be set by the function calling luaX:llex
---   (see luaX:next and luaX:lookahead elsewhere in this file)
+-- * ls.t.token has to be set by the function calling luaX.llex
+--   (see luaX.next and luaX.lookahead elsewhere in this file)
 ------------------------------------------------------------------------
-function luaX:syntaxerror(ls, msg)
-	self:lexerror(ls, msg, ls.t.token)
+function luaX.syntaxerror(ls, msg)
+	luaX.lexerror(ls, msg, ls.t.token)
 end
 
 ------------------------------------------------------------------------
 -- move on to next line
 ------------------------------------------------------------------------
-function luaX:currIsNewline(ls)
+function luaX.currIsNewline(ls)
 	return ls.current == "\n" or ls.current == "\r"
 end
 
-function luaX:inclinenumber(ls)
+function luaX.inclinenumber(ls)
 	local old = ls.current
-	-- lua_assert(currIsNewline(ls))
-	self:nextc(ls) -- skip '\n' or '\r'
-	if self:currIsNewline(ls) and ls.current ~= old then
-		self:nextc(ls) -- skip '\n\r' or '\r\n'
+	-- assert(currIsNewline(ls))
+	luaX.nextc(ls) -- skip '\n' or '\r'
+	if luaX.currIsNewline(ls) and ls.current ~= old then
+		luaX.nextc(ls) -- skip '\n\r' or '\r\n'
 	end
 	ls.linenumber = ls.linenumber + 1
-	if ls.linenumber >= self.MAX_INT then
-		self:syntaxerror(ls, "chunk has too many lines")
+	if ls.linenumber >= luaX.MAX_INT then
+		luaX.syntaxerror(ls, "chunk has too many lines")
 	end
 end
 
@@ -280,7 +282,7 @@ end
 --   otherwise it has to be retrieved as a return value
 -- * LUA_MINBUFFER not used; buffer handling not required any more
 ------------------------------------------------------------------------
-function luaX:setinput(L, ls, z, source)
+function luaX.setinput(L, ls, z, source)
 	if not ls then
 		ls = {}
 	end -- create struct
@@ -298,7 +300,7 @@ function luaX:setinput(L, ls, z, source)
 	ls.linenumber = 1
 	ls.lastline = 1
 	ls.source = source
-	self:nextc(ls) -- read first char
+	luaX.nextc(ls) -- read first char
 end
 
 --[[--------------------------------------------------------------------
@@ -308,20 +310,20 @@ end
 ------------------------------------------------------------------------
 -- checks if current character read is found in the set 'set'
 ------------------------------------------------------------------------
-function luaX:check_next(ls, set)
+function luaX.check_next(ls, set)
 	if not string.find(set, ls.current, 1, 1) then
 		return false
 	end
-	self:save_and_next(ls)
+	luaX.save_and_next(ls)
 	return true
 end
 
 ------------------------------------------------------------------------
 -- retrieve next token, checking the lookahead buffer if necessary
--- * note that the macro next(ls) in llex.c is now luaX:nextc
+-- * note that the macro next(ls) in llex.c is now luaX.nextc
 -- * utilized used in lparser.c (various places)
 ------------------------------------------------------------------------
-function luaX:next(ls)
+function luaX.next(ls)
 	ls.lastline = ls.linenumber
 	if ls.lookahead.token ~= "TK_EOS" then -- is there a look-ahead token?
 		-- this must be copy-by-value
@@ -329,7 +331,7 @@ function luaX:next(ls)
 		ls.t.token = ls.lookahead.token
 		ls.lookahead.token = "TK_EOS" -- and discharge it
 	else
-		ls.t.token = self:llex(ls, ls.t) -- read next token
+		ls.t.token = luaX.llex(ls, ls.t) -- read next token
 	end
 end
 
@@ -337,17 +339,17 @@ end
 -- fill in the lookahead buffer
 -- * utilized used in lparser.c:constructor
 ------------------------------------------------------------------------
-function luaX:lookahead(ls)
-	-- lua_assert(ls.lookahead.token == "TK_EOS")
-	ls.lookahead.token = self:llex(ls, ls.lookahead)
+function luaX.lookahead(ls)
+	-- assert(ls.lookahead.token == "TK_EOS")
+	ls.lookahead.token = luaX.llex(ls, ls.lookahead)
 end
 
 ------------------------------------------------------------------------
 -- gets the next character and returns it
 -- * this is the next() macro in llex.c; see notes at the beginning
 ------------------------------------------------------------------------
-function luaX:nextc(ls)
-	local c = luaZ:zgetc(ls.z)
+function luaX.nextc(ls)
+	local c = luaZ.zgetc(ls.z)
 	ls.current = c
 	return c
 end
@@ -358,28 +360,28 @@ end
 -- * test for maximum token buffer length not used, makes things faster
 ------------------------------------------------------------------------
 
-function luaX:save(ls, c)
+function luaX.save(ls, c)
 	local buff = ls.buff
 	-- if you want to use this, please uncomment luaX.MAX_SIZET further up
-	--if #buff > self.MAX_SIZET then
-	--  self:lexerror(ls, "lexical element too long")
+	--if #buff > luaX.MAX_SIZET then
+	--  luaX.lexerror(ls, "lexical element too long")
 	--end
 	ls.buff = buff .. c
 end
 
 ------------------------------------------------------------------------
 -- save current character into token buffer, grabs next character
--- * like luaX:nextc, returns the character read for convenience
+-- * like luaX.nextc, returns the character read for convenience
 ------------------------------------------------------------------------
-function luaX:save_and_next(ls)
-	self:save(ls, ls.current)
-	return self:nextc(ls)
+function luaX.save_and_next(ls)
+	luaX.save(ls, ls.current)
+	return luaX.nextc(ls)
 end
 
 ------------------------------------------------------------------------
 -- LUA_NUMBER
--- * luaX:read_numeral is the main lexer function to read a number
--- * luaX:str2d, luaX:buffreplace, luaX:trydecpoint are support functions
+-- * luaX.read_numeral is the main lexer function to read a number
+-- * luaX.str2d, luaX.buffreplace, luaX.trydecpoint are support functions
 ------------------------------------------------------------------------
 
 ------------------------------------------------------------------------
@@ -388,7 +390,7 @@ end
 -- * conversion function originally lua_str2number(s,p), a macro which
 --   maps to the strtod() function by default (from luaconf.h)
 ------------------------------------------------------------------------
-function luaX:str2d(s)
+function luaX.str2d(s)
 	local result = tonumber(s)
 	if result then
 		return result
@@ -411,7 +413,7 @@ end
 ------------------------------------------------------------------------
 -- single-character replacement, for locale-aware decimal points
 ------------------------------------------------------------------------
-function luaX:buffreplace(ls, from, to)
+function luaX.buffreplace(ls, from, to)
 	local result, buff = "", ls.buff
 	for p = 1, #buff do
 		local c = string.sub(buff, p, p)
@@ -429,19 +431,19 @@ end
 -- needed in Yueliang as Lua's tonumber() is already locale-aware.
 -- Instead, the code is here in case the user implements localeconv().
 ------------------------------------------------------------------------
-function luaX:trydecpoint(ls, Token)
+function luaX.trydecpoint(ls, Token)
 	-- format error: try to update decimal point separator
 	local old = ls.decpoint
 	-- translate the following to Lua if you implement localeconv():
 	-- struct lconv *cv = localeconv();
 	-- ls->decpoint = (cv ? cv->decimal_point[0] : '.');
-	self:buffreplace(ls, old, ls.decpoint) -- try updated decimal separator
-	local seminfo = self:str2d(ls.buff)
+	luaX.buffreplace(ls, old, ls.decpoint) -- try updated decimal separator
+	local seminfo = luaX.str2d(ls.buff)
 	Token.seminfo = seminfo
 	if not seminfo then
 		-- format error with correct decimal point: no more options
-		self:buffreplace(ls, ls.decpoint, ".") -- undo change (for error message)
-		self:lexerror(ls, "malformed number", "TK_NUMBER")
+		luaX.buffreplace(ls, ls.decpoint, ".") -- undo change (for error message)
+		luaX.lexerror(ls, "malformed number", "TK_NUMBER")
 	end
 end
 
@@ -449,36 +451,36 @@ end
 -- main number conversion function
 -- * "^%w$" needed in the scan in order to detect "EOZ"
 ------------------------------------------------------------------------
-function luaX:read_numeral(ls, Token)
-	-- lua_assert(string.find(ls.current, "%d"))
+function luaX.read_numeral(ls, Token)
+	-- assert(string.find(ls.current, "%d"))
 	repeat
-		self:save_and_next(ls)
+		luaX.save_and_next(ls)
 	until string.find(ls.current, "%D") and ls.current ~= "."
-	if self:check_next(ls, "Ee") then -- 'E'?
-		self:check_next(ls, "+-") -- optional exponent sign
+	if luaX.check_next(ls, "Ee") then -- 'E'?
+		luaX.check_next(ls, "+-") -- optional exponent sign
 	end
 	while string.find(ls.current, "^%w$") or ls.current == "_" do
-		self:save_and_next(ls)
+		luaX.save_and_next(ls)
 	end
-	self:buffreplace(ls, ".", ls.decpoint) -- follow locale for decimal point
-	local seminfo = self:str2d(ls.buff)
+	luaX.buffreplace(ls, ".", ls.decpoint) -- follow locale for decimal point
+	local seminfo = luaX.str2d(ls.buff)
 	Token.seminfo = seminfo
 	if not seminfo then -- format error?
-		self:trydecpoint(ls, Token) -- try to update decimal point separator
+		luaX.trydecpoint(ls, Token) -- try to update decimal point separator
 	end
 end
 
 ------------------------------------------------------------------------
 -- count separators ("=") in a long string delimiter
--- * used by luaX:read_long_string
+-- * used by luaX.read_long_string
 ------------------------------------------------------------------------
-function luaX:skip_sep(ls)
+function luaX.skip_sep(ls)
 	local count = 0
 	local s = ls.current
-	-- lua_assert(s == "[" or s == "]")
-	self:save_and_next(ls)
+	-- assert(s == "[" or s == "]")
+	luaX.save_and_next(ls)
 	while ls.current == "=" do
-		self:save_and_next(ls)
+		luaX.save_and_next(ls)
 		count = count + 1
 	end
 	return (ls.current == s) and count or -count - 1
@@ -487,26 +489,26 @@ end
 ------------------------------------------------------------------------
 -- reads a long string or long comment
 ------------------------------------------------------------------------
-function luaX:read_long_string(ls, Token, sep)
+function luaX.read_long_string(ls, Token, sep)
 	local cont = 0
-	self:save_and_next(ls) -- skip 2nd '['
-	if self:currIsNewline(ls) then -- string starts with a newline?
-		self:inclinenumber(ls) -- skip it
+	luaX.save_and_next(ls) -- skip 2nd '['
+	if luaX.currIsNewline(ls) then -- string starts with a newline?
+		luaX.inclinenumber(ls) -- skip it
 	end
 	while true do
 		local c = ls.current
 		if c == "EOZ" then
-			self:lexerror(ls, Token and "unfinished long string" or "unfinished long comment", "TK_EOS")
+			luaX.lexerror(ls, Token and "unfinished long string" or "unfinished long comment", "TK_EOS")
 		elseif c == "[" then
 			--# compatibility code start
-			if self.LUA_COMPAT_LSTR then
-				if self:skip_sep(ls) == sep then
-					self:save_and_next(ls) -- skip 2nd '['
+			if luaX.LUA_COMPAT_LSTR then
+				if luaX.skip_sep(ls) == sep then
+					luaX.save_and_next(ls) -- skip 2nd '['
 					cont = cont + 1
 					--# compatibility code start
-					if self.LUA_COMPAT_LSTR == 1 then
+					if luaX.LUA_COMPAT_LSTR == 1 then
 						if sep == 0 then
-							self:lexerror(ls, "nesting of [[...]] is deprecated", "[")
+							luaX.lexerror(ls, "nesting of [[...]] is deprecated", "[")
 						end
 					end
 					--# compatibility code end
@@ -514,10 +516,10 @@ function luaX:read_long_string(ls, Token, sep)
 			end
 			--# compatibility code end
 		elseif c == "]" then
-			if self:skip_sep(ls) == sep then
-				self:save_and_next(ls) -- skip 2nd ']'
+			if luaX.skip_sep(ls) == sep then
+				luaX.save_and_next(ls) -- skip 2nd ']'
 				--# compatibility code start
-				if self.LUA_COMPAT_LSTR and self.LUA_COMPAT_LSTR == 2 then
+				if luaX.LUA_COMPAT_LSTR and luaX.LUA_COMPAT_LSTR == 2 then
 					cont = cont - 1
 					if sep == 0 and cont >= 0 then
 						break
@@ -526,17 +528,17 @@ function luaX:read_long_string(ls, Token, sep)
 				--# compatibility code end
 				break
 			end
-		elseif self:currIsNewline(ls) then
-			self:save(ls, "\n")
-			self:inclinenumber(ls)
+		elseif luaX.currIsNewline(ls) then
+			luaX.save(ls, "\n")
+			luaX.inclinenumber(ls)
 			if not Token then
 				ls.buff = ""
 			end -- avoid wasting space
 		else -- default
 			if Token then
-				self:save_and_next(ls)
+				luaX.save_and_next(ls)
 			else
-				self:nextc(ls)
+				luaX.nextc(ls)
 			end
 		end --if c
 	end --while
@@ -551,134 +553,134 @@ end
 -- * has been restructured significantly compared to the original C code
 ------------------------------------------------------------------------
 
-function luaX:read_string(ls, del, Token)
-	self:save_and_next(ls)
+function luaX.read_string(ls, del, Token)
+	luaX.save_and_next(ls)
 	while ls.current ~= del do
 		local c = ls.current
 		if c == "EOZ" then
-			self:lexerror(ls, "unfinished string", "TK_EOS")
-		elseif self:currIsNewline(ls) then
-			self:lexerror(ls, "unfinished string", "TK_STRING")
+			luaX.lexerror(ls, "unfinished string", "TK_EOS")
+		elseif luaX.currIsNewline(ls) then
+			luaX.lexerror(ls, "unfinished string", "TK_STRING")
 		elseif c == "\\" then
-			c = self:nextc(ls) -- do not save the '\'
-			if self:currIsNewline(ls) then -- go through
-				self:save(ls, "\n")
-				self:inclinenumber(ls)
+			c = luaX.nextc(ls) -- do not save the '\'
+			if luaX.currIsNewline(ls) then -- go through
+				luaX.save(ls, "\n")
+				luaX.inclinenumber(ls)
 			elseif c ~= "EOZ" then -- will raise an error next loop
 				-- escapes handling greatly simplified here:
 				local i = string.find("abfnrtv", c, 1, 1)
 				if i then
-					self:save(ls, string.sub("\a\b\f\n\r\t\v", i, i))
-					self:nextc(ls)
+					luaX.save(ls, string.sub("\a\b\f\n\r\t\v", i, i))
+					luaX.nextc(ls)
 				elseif not string.find(c, "%d") then
-					self:save_and_next(ls) -- handles \\, \", \', and \?
+					luaX.save_and_next(ls) -- handles \\, \", \', and \?
 				else -- \xxx
 					c, i = 0, 0
 					repeat
 						c = 10 * c + ls.current
-						self:nextc(ls)
+						luaX.nextc(ls)
 						i = i + 1
 					until i >= 3 or not string.find(ls.current, "%d")
 					if c > 255 then -- UCHAR_MAX
-						self:lexerror(ls, "escape sequence too large", "TK_STRING")
+						luaX.lexerror(ls, "escape sequence too large", "TK_STRING")
 					end
-					self:save(ls, string.char(c))
+					luaX.save(ls, string.char(c))
 				end
 			end
 		else
-			self:save_and_next(ls)
+			luaX.save_and_next(ls)
 		end --if c
 	end --while
-	self:save_and_next(ls) -- skip delimiter
+	luaX.save_and_next(ls) -- skip delimiter
 	Token.seminfo = string.sub(ls.buff, 2, -2)
 end
 
 ------------------------------------------------------------------------
 -- main lexer function
 ------------------------------------------------------------------------
-function luaX:llex(ls, Token)
+function luaX.llex(ls, Token)
 	ls.buff = ""
 	while true do
 		local c = ls.current
 		----------------------------------------------------------------
-		if self:currIsNewline(ls) then
-			self:inclinenumber(ls)
+		if luaX.currIsNewline(ls) then
+			luaX.inclinenumber(ls)
 			----------------------------------------------------------------
 		elseif c == "-" then
-			c = self:nextc(ls)
+			c = luaX.nextc(ls)
 			if c ~= "-" then
 				return "-"
 			end
 			-- else is a comment
 			local sep = -1
-			if self:nextc(ls) == "[" then
-				sep = self:skip_sep(ls)
+			if luaX.nextc(ls) == "[" then
+				sep = luaX.skip_sep(ls)
 				ls.buff = "" -- 'skip_sep' may dirty the buffer
 			end
 			if sep >= 0 then
-				self:read_long_string(ls, nil, sep) -- long comment
+				luaX.read_long_string(ls, nil, sep) -- long comment
 				ls.buff = ""
 			else -- else short comment
-				while not self:currIsNewline(ls) and ls.current ~= "EOZ" do
-					self:nextc(ls)
+				while not luaX.currIsNewline(ls) and ls.current ~= "EOZ" do
+					luaX.nextc(ls)
 				end
 			end
 			----------------------------------------------------------------
 		elseif c == "[" then
-			local sep = self:skip_sep(ls)
+			local sep = luaX.skip_sep(ls)
 			if sep >= 0 then
-				self:read_long_string(ls, Token, sep)
+				luaX.read_long_string(ls, Token, sep)
 				return "TK_STRING"
 			elseif sep == -1 then
 				return "["
 			else
-				self:lexerror(ls, "invalid long string delimiter", "TK_STRING")
+				luaX.lexerror(ls, "invalid long string delimiter", "TK_STRING")
 			end
 			----------------------------------------------------------------
 		elseif c == "=" then
-			c = self:nextc(ls)
+			c = luaX.nextc(ls)
 			if c ~= "=" then
 				return "="
 			else
-				self:nextc(ls)
+				luaX.nextc(ls)
 				return "TK_EQ"
 			end
 			----------------------------------------------------------------
 		elseif c == "<" then
-			c = self:nextc(ls)
+			c = luaX.nextc(ls)
 			if c ~= "=" then
 				return "<"
 			else
-				self:nextc(ls)
+				luaX.nextc(ls)
 				return "TK_LE"
 			end
 			----------------------------------------------------------------
 		elseif c == ">" then
-			c = self:nextc(ls)
+			c = luaX.nextc(ls)
 			if c ~= "=" then
 				return ">"
 			else
-				self:nextc(ls)
+				luaX.nextc(ls)
 				return "TK_GE"
 			end
 			----------------------------------------------------------------
 		elseif c == "~" then
-			c = self:nextc(ls)
+			c = luaX.nextc(ls)
 			if c ~= "=" then
 				return "~"
 			else
-				self:nextc(ls)
+				luaX.nextc(ls)
 				return "TK_NE"
 			end
 			----------------------------------------------------------------
 		elseif c == '"' or c == "'" then
-			self:read_string(ls, c, Token)
+			luaX.read_string(ls, c, Token)
 			return "TK_STRING"
 			----------------------------------------------------------------
 		elseif c == "." then
-			c = self:save_and_next(ls)
-			if self:check_next(ls, ".") then
-				if self:check_next(ls, ".") then
+			c = luaX.save_and_next(ls)
+			if luaX.check_next(ls, ".") then
+				if luaX.check_next(ls, ".") then
 					return "TK_DOTS" -- ...
 				else
 					return "TK_CONCAT" -- ..
@@ -686,7 +688,7 @@ function luaX:llex(ls, Token)
 			elseif not string.find(c, "%d") then
 				return "."
 			else
-				self:read_numeral(ls, Token)
+				luaX.read_numeral(ls, Token)
 				return "TK_NUMBER"
 			end
 			----------------------------------------------------------------
@@ -695,25 +697,25 @@ function luaX:llex(ls, Token)
 			----------------------------------------------------------------
 		else -- default
 			if string.find(c, "%s") then
-				-- lua_assert(self:currIsNewline(ls))
-				self:nextc(ls)
+				-- assert(luaX.currIsNewline(ls))
+				luaX.nextc(ls)
 			elseif string.find(c, "%d") then
-				self:read_numeral(ls, Token)
+				luaX.read_numeral(ls, Token)
 				return "TK_NUMBER"
 			elseif string.find(c, "[_%a]") then
 				-- identifier or reserved word
 				repeat
-					c = self:save_and_next(ls)
+					c = luaX.save_and_next(ls)
 				until c == "EOZ" or not string.find(c, "[_%w]")
 				local ts = ls.buff
-				local tok = self.enums[ts]
+				local tok = luaX.enums[ts]
 				if tok then
 					return tok
 				end -- reserved word?
 				Token.seminfo = ts
 				return "TK_NAME"
 			else
-				self:nextc(ls)
+				luaX.nextc(ls)
 				return c -- single-char tokens (+ - / ...)
 			end
 			----------------------------------------------------------------
